@@ -41,7 +41,8 @@
 #include "TComTU.h"
 #include "Debug.h"
 #include "TComPrediction.h"
-
+#include <cmath>
+#include <algorithm>
 //! \ingroup TLibCommon
 //! \{
 
@@ -572,7 +573,11 @@ Bool isAboveLeftAvailable( const TComDataCU* pcCU, UInt uiPartIdxLT )
   const TComDataCU* pcCUAboveLeft = pcCU->getPUAboveLeft( uiPartAboveLeft, uiPartIdxLT );
   if(pcCU->getSlice()->getPPS()->getConstrainedIntraPred())
   {
-    bAboveLeftFlag = ( pcCUAboveLeft && pcCUAboveLeft->isIntra( uiPartAboveLeft ) );
+#if SCM_V0066_CIP_IBC_UNI
+    bAboveLeftFlag = ( pcCUAboveLeft && pcCUAboveLeft->isConstrainedIntra( uiPartAboveLeft ) );
+#else
+    bAboveLeftFlag = ( pcCUAboveLeft && (pcCUAboveLeft->isConstrainedIntra( uiPartAboveLeft ) || pcCUAboveLeft->isIntraBC( uiPartAboveLeft )) );
+#endif
   }
   else
   {
@@ -595,7 +600,11 @@ Int isAboveAvailable( const TComDataCU* pcCU, UInt uiPartIdxLT, UInt uiPartIdxRT
     const TComDataCU* pcCUAbove = pcCU->getPUAbove( uiPartAbove, g_auiRasterToZscan[uiRasterPart] );
     if(pcCU->getSlice()->getPPS()->getConstrainedIntraPred())
     {
-      if ( pcCUAbove && pcCUAbove->isIntra( uiPartAbove ) )
+#if SCM_V0066_CIP_IBC_UNI
+      if ( pcCUAbove && pcCUAbove->isConstrainedIntra( uiPartAbove ) )
+#else
+      if ( pcCUAbove && (pcCUAbove->isConstrainedIntra( uiPartAbove ) || pcCUAbove->isIntraBC( uiPartAbove )) )
+#endif
       {
         iNumIntra++;
         *pbValidFlags = true;
@@ -636,7 +645,11 @@ Int isLeftAvailable( const TComDataCU* pcCU, UInt uiPartIdxLT, UInt uiPartIdxLB,
     const TComDataCU* pcCULeft = pcCU->getPULeft( uiPartLeft, g_auiRasterToZscan[uiRasterPart] );
     if(pcCU->getSlice()->getPPS()->getConstrainedIntraPred())
     {
-      if ( pcCULeft && pcCULeft->isIntra( uiPartLeft ) )
+#if SCM_V0066_CIP_IBC_UNI
+      if ( pcCULeft && pcCULeft->isConstrainedIntra( uiPartLeft ) )
+#else
+      if ( pcCULeft && (pcCULeft->isConstrainedIntra( uiPartLeft ) || pcCULeft->isIntraBC( uiPartLeft )) )
+#endif
       {
         iNumIntra++;
         *pbValidFlags = true;
@@ -676,7 +689,11 @@ Int isAboveRightAvailable( const TComDataCU* pcCU, UInt uiPartIdxLT, UInt uiPart
     const TComDataCU* pcCUAboveRight = pcCU->getPUAboveRight( uiPartAboveRight, uiPartIdxRT, uiOffset );
     if(pcCU->getSlice()->getPPS()->getConstrainedIntraPred())
     {
-      if ( pcCUAboveRight && pcCUAboveRight->isIntra( uiPartAboveRight ) )
+#if SCM_V0066_CIP_IBC_UNI
+      if ( pcCUAboveRight && pcCUAboveRight->isConstrainedIntra( uiPartAboveRight ) )
+#else
+      if ( pcCUAboveRight && (pcCUAboveRight->isConstrainedIntra( uiPartAboveRight ) || pcCUAboveRight->isIntraBC( uiPartAboveRight )) )
+#endif
       {
         iNumIntra++;
         *pbValidFlags = true;
@@ -716,7 +733,11 @@ Int isBelowLeftAvailable( const TComDataCU* pcCU, UInt uiPartIdxLT, UInt uiPartI
     const TComDataCU* pcCUBelowLeft = pcCU->getPUBelowLeft( uiPartBelowLeft, uiPartIdxLB, uiOffset );
     if(pcCU->getSlice()->getPPS()->getConstrainedIntraPred())
     {
-      if ( pcCUBelowLeft && pcCUBelowLeft->isIntra( uiPartBelowLeft ) )
+#if SCM_V0066_CIP_IBC_UNI
+      if ( pcCUBelowLeft && pcCUBelowLeft->isConstrainedIntra( uiPartBelowLeft ) )
+#else
+      if ( pcCUBelowLeft && (pcCUBelowLeft->isConstrainedIntra( uiPartBelowLeft ) || pcCUBelowLeft->isIntraBC( uiPartBelowLeft )) )
+#endif
       {
         iNumIntra++;
         *pbValidFlags = true;

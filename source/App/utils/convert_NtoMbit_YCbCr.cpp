@@ -114,7 +114,7 @@ Int main(Int argc, const char** argv)
   UInt num_frames_processed = 0;
   while (!input.isEof())
   {
-    if (! input.read(&frame, &cPicYuvTrueOrg, IPCOLOURSPACE_UNCHANGED, pad))
+    // if (! input.read(&frame, &cPicYuvTrueOrg, IPCOLOURSPACE_UNCHANGED, pad))
     {
       break;
     }

@@ -672,7 +672,7 @@ static Bool writeField(ostream& fd, Pel* top, Pel* bottom, Bool is16bit,
  * @param format           chroma format
  * @return true for success, false in case of error
  */
-Bool TVideoIOYuv::read ( TComPicYuv*  pPicYuvUser, TComPicYuv* pPicYuvTrueOrg, const InputColourSpaceConversion ipcsc, Int aiPad[2], ChromaFormat format, const Bool bClipToRec709 )
+Bool TVideoIOYuv::read ( TComPicYuv*  pPicYuvUser, TComPicYuv*  pPicYuvUserSad, TComPicYuv* pPicYuvTrueOrg, const InputColourSpaceConversion ipcsc, Int aiPad[2], ChromaFormat format, const Bool bClipToRec709 )
 {
   // check end-of-file
   if ( isEof() )
@@ -732,6 +732,7 @@ Bool TVideoIOYuv::read ( TComPicYuv*  pPicYuvUser, TComPicYuv* pPicYuvTrueOrg, c
   }
   std::cerr << "coloursp" << std::endl;
   ColourSpaceConvert(*pPicYuvTrueOrg, *pPicYuvUser, ipcsc, true);
+  ColourSpaceConvert(*pPicYuvTrueOrg, *pPicYuvUserSad, ipcsc, true);
 
   return true;
 }

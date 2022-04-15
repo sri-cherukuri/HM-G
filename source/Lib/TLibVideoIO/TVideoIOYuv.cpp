@@ -672,7 +672,7 @@ static Bool writeField(ostream& fd, Pel* top, Pel* bottom, Bool is16bit,
  * @param format           chroma format
  * @return true for success, false in case of error
  */
-Bool TVideoIOYuv::read ( TComPicYuv*  pPicYuvUser, TComPicYuv*  pPicYuvUserSad, TComPicYuv* pPicYuvTrueOrg, const InputColourSpaceConversion ipcsc, Int aiPad[2], ChromaFormat format, const Bool bClipToRec709 )
+Bool TVideoIOYuv::read ( TComPicYuv*  pPicYuvUser, TComPicYuv*  pPicYuvUserSad, TComPicYuv* pPicYuvTrueOrg, TComPicYuv* pPicYuvTrueOrgSad, const InputColourSpaceConversion ipcsc, Int aiPad[2], ChromaFormat format, const Bool bClipToRec709 )
 {
   // check end-of-file
   if ( isEof() )
@@ -730,9 +730,10 @@ Bool TVideoIOYuv::read ( TComPicYuv*  pPicYuvUser, TComPicYuv*  pPicYuvUserSad, 
       scalePlane(pPicYuv->getAddr(compID), stride444>>csx, width_full444>>csx, height_full444>>csy, m_bitdepthShift[chType], minval, maxval);
     }
   }
-  std::cerr << "coloursp" << std::endl;
+  std::cerr << "Read part 1" << std::endl;
   ColourSpaceConvert(*pPicYuvTrueOrg, *pPicYuvUser, ipcsc, true);
-  ColourSpaceConvert(*pPicYuvTrueOrg, *pPicYuvUserSad, ipcsc, true);
+  std::cerr << "Read part 2" << std::endl;
+  ColourSpaceConvert(*pPicYuvTrueOrgSad, *pPicYuvUserSad, ipcsc, true);
 
   return true;
 }
@@ -756,6 +757,7 @@ Bool TVideoIOYuv::write( TComPicYuv* pPicYuvUser, const InputColourSpaceConversi
   if (ipCSC!=IPCOLOURSPACE_UNCHANGED)
   {
     cPicYuvCSCd.createWithoutCUInfo(pPicYuvUser->getWidth(COMPONENT_Y), pPicYuvUser->getHeight(COMPONENT_Y), pPicYuvUser->getChromaFormat() );
+    std::cerr << "recon write" << std::endl;
     ColourSpaceConvert(*pPicYuvUser, cPicYuvCSCd, ipCSC, false);
   }
   TComPicYuv *pPicYuv=(ipCSC==IPCOLOURSPACE_UNCHANGED) ? pPicYuvUser : &cPicYuvCSCd;
@@ -847,6 +849,7 @@ Bool TVideoIOYuv::write( TComPicYuv* pPicYuvUserTop, TComPicYuv* pPicYuvUserBott
   {
     cPicYuvTopCSCd   .createWithoutCUInfo(pPicYuvUserTop   ->getWidth(COMPONENT_Y), pPicYuvUserTop   ->getHeight(COMPONENT_Y), pPicYuvUserTop   ->getChromaFormat() );
     cPicYuvBottomCSCd.createWithoutCUInfo(pPicYuvUserBottom->getWidth(COMPONENT_Y), pPicYuvUserBottom->getHeight(COMPONENT_Y), pPicYuvUserBottom->getChromaFormat() );
+    std::cerr << "recon write field?" << std::endl;
     ColourSpaceConvert(*pPicYuvUserTop,    cPicYuvTopCSCd,    ipCSC, false);
     ColourSpaceConvert(*pPicYuvUserBottom, cPicYuvBottomCSCd, ipCSC, false);
   }
@@ -964,7 +967,7 @@ copyPlane(const TComPicYuv &src, const ComponentID srcPlane, TComPicYuv &dest, c
   const UInt width=src.getWidth(srcPlane);
   const UInt height=src.getHeight(srcPlane);
   assert(dest.getWidth(destPlane) == width);
-  std::cerr << "dest height: " <<  dest.getHeight(destPlane) << ", height: " << height << std::endl;
+  std::cerr << "Copy Plane called. dest height: " <<  dest.getHeight(destPlane) << ", height: " << height << std::endl;
   assert(dest.getHeight(destPlane) == height);
   const Pel *pSrc=src.getAddr(srcPlane);
   Pel *pDest=dest.getAddr(destPlane);
@@ -984,10 +987,6 @@ Void TVideoIOYuv::ColourSpaceConvert(const TComPicYuv &src, TComPicYuv &dest, co
 
   switch (conversion)
   {
-    case IPCOLOURSPACE_YCbCrtoY:
-      std::cerr << "hi5" << std::endl;
-      copyPlane(src, ComponentID(COMPONENT_Y), dest, ComponentID(COMPONENT_Y));
-      break;
     case IPCOLOURSPACE_YCbCrtoYYY:
       if (format!=CHROMA_444)
       {
@@ -999,7 +998,6 @@ Void TVideoIOYuv::ColourSpaceConvert(const TComPicYuv &src, TComPicYuv &dest, co
       {
         for(UInt comp=0; comp<numValidComp; comp++)
         {
-          std::cerr << "hi6" << std::endl;
           copyPlane(src, ComponentID(bIsForwards?0:comp), dest, ComponentID(comp));
         }
       }
@@ -1008,7 +1006,6 @@ Void TVideoIOYuv::ColourSpaceConvert(const TComPicYuv &src, TComPicYuv &dest, co
       {
         for(UInt comp=0; comp<numValidComp; comp++)
         {
-          std::cerr << "hi7" << std::endl;
           copyPlane(src, ComponentID(comp), dest, ComponentID((numValidComp-comp)%numValidComp));
         }
       }
@@ -1028,7 +1025,6 @@ Void TVideoIOYuv::ColourSpaceConvert(const TComPicYuv &src, TComPicYuv &dest, co
         {
           const ComponentID compIDsrc=ComponentID((comp+1)%numValidComp);
           const ComponentID compIDdst=ComponentID(comp);
-          std::cerr << "hi8" << std::endl;
           copyPlane(src, bIsForwards?compIDsrc:compIDdst, dest, bIsForwards?compIDdst:compIDsrc);
         }
       }
@@ -1039,7 +1035,7 @@ Void TVideoIOYuv::ColourSpaceConvert(const TComPicYuv &src, TComPicYuv &dest, co
       {
         for(UInt comp=0; comp<numValidComp; comp++)
         {
-          std::cerr << "hi9" << std::endl;
+          std::cerr << "IPCOLOURSPACE_UNCHANGED COMP: " << comp << std::endl;
           copyPlane(src, ComponentID(comp), dest, ComponentID(comp));
         }
       }

@@ -106,7 +106,7 @@ Int main(Int argc, const char** argv)
   TComPicYuv frame;
   frame.createWithoutCUInfo( width, height, chromaFormatIDC);
 
-  Int pad[2] = {0, 0};
+  // Int pad[2] = {0, 0};
 
   TComPicYuv cPicYuvTrueOrg;
   cPicYuvTrueOrg.createWithoutCUInfo( width, height, chromaFormatIDC );

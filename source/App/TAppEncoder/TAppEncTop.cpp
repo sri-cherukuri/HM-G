@@ -834,18 +834,23 @@ Void TAppEncTop::encode()
   list<AccessUnit> outputAccessUnitsSad; ///< sad list of access units to write out.  is populated by the encoding process
 
   TComPicYuv cPicYuvTrueOrg;
+  TComPicYuv cPicYuvTrueOrgSad;
   // allocate original YUV buffer
   if( m_isField )
   {
     pcPicYuvOrg->create  ( m_iSourceWidth, m_iSourceHeightOrg, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
-    cPicYuvTrueOrg.create(m_iSourceWidth, m_iSourceHeightOrg, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true);
     pcPicYuvOrgSad->create  ( m_iSourceWidth, m_iSourceHeightOrg, CHROMA_400, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
+
+    cPicYuvTrueOrg.create(m_iSourceWidth, m_iSourceHeightOrg, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true);
+    cPicYuvTrueOrgSad.create(m_iSourceWidth, m_iSourceHeightOrg, CHROMA_400, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true);
   }
   else
   {
     pcPicYuvOrg->create  ( m_iSourceWidth, m_iSourceHeight, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
-    cPicYuvTrueOrg.create(m_iSourceWidth, m_iSourceHeight, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
     pcPicYuvOrgSad->create  ( m_iSourceWidth, m_iSourceHeight, CHROMA_400, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
+
+    cPicYuvTrueOrg.create(m_iSourceWidth, m_iSourceHeight, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
+    cPicYuvTrueOrgSad.create(m_iSourceWidth, m_iSourceHeight, CHROMA_400, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
   }
 
   while ( !bEos )
@@ -855,7 +860,7 @@ Void TAppEncTop::encode()
     xGetBuffer(pcPicYuvRecSad, true); //Make pcPicYuvRecSad?
 
     // read input YUV file
-    m_cTVideoIOYuvInputFile.read( pcPicYuvOrg, pcPicYuvOrgSad, &cPicYuvTrueOrg, ipCSC, m_aiPad, m_InputChromaFormatIDC, m_bClipInputVideoToRec709Range );
+    m_cTVideoIOYuvInputFile.read( pcPicYuvOrg, pcPicYuvOrgSad, &cPicYuvTrueOrg, &cPicYuvTrueOrgSad, ipCSC, m_aiPad, m_InputChromaFormatIDC, m_bClipInputVideoToRec709Range );
     // m_cTVideoIOYuvInputFile.read( pcPicYuvOrgSad, &cPicYuvTrueOrg, ipCSC, m_aiPad, m_InputChromaFormatIDC, m_bClipInputVideoToRec709Range );
 
     // increase number of received frames
@@ -878,12 +883,12 @@ Void TAppEncTop::encode()
     if ( m_isField )
     {
       m_cTEncTop.encode( bEos, flush ? 0 : pcPicYuvOrg, flush ? 0 : &cPicYuvTrueOrg, snrCSC, m_cListPicYuvRec, outputAccessUnits, iNumEncoded, m_isTopFieldFirst );
-      m_cTEncTopSad.encode( bEos, flush ? 0 : pcPicYuvOrgSad, flush ? 0 : &cPicYuvTrueOrg, snrCSC, m_cListPicYuvRecSad, outputAccessUnitsSad, iNumEncoded, m_isTopFieldFirst );
+      m_cTEncTopSad.encode( bEos, flush ? 0 : pcPicYuvOrgSad, flush ? 0 : &cPicYuvTrueOrgSad, snrCSC, m_cListPicYuvRecSad, outputAccessUnitsSad, iNumEncoded, m_isTopFieldFirst );
     }
     else
     {
       m_cTEncTop.encode( bEos, flush ? 0 : pcPicYuvOrg, flush ? 0 : &cPicYuvTrueOrg, snrCSC, m_cListPicYuvRec, outputAccessUnits, iNumEncoded );
-      m_cTEncTopSad.encode( bEos, flush ? 0 : pcPicYuvOrgSad, flush ? 0 : &cPicYuvTrueOrg, snrCSC, m_cListPicYuvRecSad, outputAccessUnitsSad, iNumEncoded );
+      m_cTEncTopSad.encode( bEos, flush ? 0 : pcPicYuvOrgSad, flush ? 0 : &cPicYuvTrueOrgSad, snrCSC, m_cListPicYuvRecSad, outputAccessUnitsSad, iNumEncoded );
     }
 
     // write bistream to file if necessary
@@ -912,6 +917,7 @@ Void TAppEncTop::encode()
   m_cTEncTop.deletePicBuffer();
   m_cTEncTopSad.deletePicBuffer();
   cPicYuvTrueOrg.destroy();
+  cPicYuvTrueOrgSad.destroy();
 
   // delete buffers & classes
   xDeleteBuffer(true);

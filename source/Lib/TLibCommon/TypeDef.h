@@ -294,7 +294,8 @@ enum InputColourSpaceConversion // defined in terms of conversion prior to input
   IPCOLOURSPACE_YCbCrtoYCrCb            = 1, // Mainly used for debug!
   IPCOLOURSPACE_YCbCrtoYYY              = 2, // Mainly used for debug!
   IPCOLOURSPACE_RGBtoGBR                = 3,
-  NUMBER_INPUT_COLOUR_SPACE_CONVERSIONS = 4
+  IPCOLOURSPACE_YCbCrtoY                = 4,
+  NUMBER_INPUT_COLOUR_SPACE_CONVERSIONS = 5
 };
 
 enum MATRIX_COEFFICIENTS // Table E.5 (Matrix coefficients)

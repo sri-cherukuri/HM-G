@@ -982,6 +982,9 @@ Void TVideoIOYuv::ColourSpaceConvert(const TComPicYuv &src, TComPicYuv &dest, co
 
   switch (conversion)
   {
+    case IPCOLOURSPACE_YCbCrtoY:
+      copyPlane(src, ComponentID(COMPONENT_Y), dest, ComponentID(COMPONENT_Y));
+      break;
     case IPCOLOURSPACE_YCbCrtoYYY:
       if (format!=CHROMA_444)
       {

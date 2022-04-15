@@ -59,15 +59,19 @@ class TAppEncTop : public TAppEncCfg
 private:
   // class interface
   TEncTop                    m_cTEncTop;                    ///< encoder class
+  TEncTop                    m_cTEncTopSad;                    ///< sad encoder class
   TVideoIOYuv                m_cTVideoIOYuvInputFile;       ///< input YUV file
   TVideoIOYuv                m_cTVideoIOYuvReconFile;       ///< output reconstruction file
+  TVideoIOYuv                m_cTVideoIOYuvReconFileSad;       ///< output reconstruction file
 
   TComList<TComPicYuv*>      m_cListPicYuvRec;              ///< list of reconstruction YUV files
 
   Int                        m_iFrameRcvd;                  ///< number of received frames
 
   UInt m_essentialBytes;
+  UInt m_essentialBytesSad;
   UInt m_totalBytes;
+  UInt m_totalBytesSad;
 
 protected:
   // initialization
@@ -83,8 +87,8 @@ protected:
   Void  xDeleteBuffer     ();
 
   // file I/O
-  Void xWriteOutput(std::ostream& bitstreamFile, Int iNumEncoded, const std::list<AccessUnit>& accessUnits); ///< write bitstream to file
-  Void rateStatsAccum(const AccessUnit& au, const std::vector<UInt>& stats);
+  Void xWriteOutput(std::ostream& bitstreamFile, Int iNumEncoded, const std::list<AccessUnit>& accessUnits, bool isSad); ///< write bitstream to file
+  Void rateStatsAccum(const AccessUnit& au, const std::vector<UInt>& stats, bool isSad);
   Void printRateSummary();
   Void printChromaFormat();
 

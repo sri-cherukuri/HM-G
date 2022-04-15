@@ -82,10 +82,10 @@ protected:
   Void  xDestroyLib       ();                               ///< destroy encoder class
 
   /// obtain required buffers
-  Void xGetBuffer(TComPicYuv*& rpcPicYuvRec);
+  Void xGetBuffer(TComPicYuv*& rpcPicYuvRec, bool isSad);
 
   /// delete allocated buffers
-  Void  xDeleteBuffer     ();
+  Void  xDeleteBuffer     ( bool isSad );
 
   // file I/O
   Void xWriteOutput(std::ostream& bitstreamFile, Int iNumEncoded, const std::list<AccessUnit>& accessUnits, bool isSad); ///< write bitstream to file

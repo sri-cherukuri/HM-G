@@ -730,7 +730,7 @@ Bool TVideoIOYuv::read ( TComPicYuv*  pPicYuvUser, TComPicYuv* pPicYuvTrueOrg, c
       scalePlane(pPicYuv->getAddr(compID), stride444>>csx, width_full444>>csx, height_full444>>csy, m_bitdepthShift[chType], minval, maxval);
     }
   }
-
+  std::cerr << "coloursp" << std::endl;
   ColourSpaceConvert(*pPicYuvTrueOrg, *pPicYuvUser, ipcsc, true);
 
   return true;
@@ -983,6 +983,7 @@ Void TVideoIOYuv::ColourSpaceConvert(const TComPicYuv &src, TComPicYuv &dest, co
   switch (conversion)
   {
     case IPCOLOURSPACE_YCbCrtoY:
+      std::cerr << "hi5" << std::endl;
       copyPlane(src, ComponentID(COMPONENT_Y), dest, ComponentID(COMPONENT_Y));
       break;
     case IPCOLOURSPACE_YCbCrtoYYY:
@@ -996,6 +997,7 @@ Void TVideoIOYuv::ColourSpaceConvert(const TComPicYuv &src, TComPicYuv &dest, co
       {
         for(UInt comp=0; comp<numValidComp; comp++)
         {
+          std::cerr << "hi6" << std::endl;
           copyPlane(src, ComponentID(bIsForwards?0:comp), dest, ComponentID(comp));
         }
       }
@@ -1004,6 +1006,7 @@ Void TVideoIOYuv::ColourSpaceConvert(const TComPicYuv &src, TComPicYuv &dest, co
       {
         for(UInt comp=0; comp<numValidComp; comp++)
         {
+          std::cerr << "hi7" << std::endl;
           copyPlane(src, ComponentID(comp), dest, ComponentID((numValidComp-comp)%numValidComp));
         }
       }
@@ -1023,6 +1026,7 @@ Void TVideoIOYuv::ColourSpaceConvert(const TComPicYuv &src, TComPicYuv &dest, co
         {
           const ComponentID compIDsrc=ComponentID((comp+1)%numValidComp);
           const ComponentID compIDdst=ComponentID(comp);
+          std::cerr << "hi8" << std::endl;
           copyPlane(src, bIsForwards?compIDsrc:compIDdst, dest, bIsForwards?compIDdst:compIDsrc);
         }
       }
@@ -1033,6 +1037,7 @@ Void TVideoIOYuv::ColourSpaceConvert(const TComPicYuv &src, TComPicYuv &dest, co
       {
         for(UInt comp=0; comp<numValidComp; comp++)
         {
+          std::cerr << "hi9" << std::endl;
           copyPlane(src, ComponentID(comp), dest, ComponentID(comp));
         }
       }

@@ -963,6 +963,7 @@ copyPlane(const TComPicYuv &src, const ComponentID srcPlane, TComPicYuv &dest, c
   const UInt width=src.getWidth(srcPlane);
   const UInt height=src.getHeight(srcPlane);
   assert(dest.getWidth(destPlane) == width);
+  std::cerr << "dest height: " <<  dest.getHeight(destPlane) << ", height: " << height << std::endl;
   assert(dest.getHeight(destPlane) == height);
   const Pel *pSrc=src.getAddr(srcPlane);
   Pel *pDest=dest.getAddr(destPlane);

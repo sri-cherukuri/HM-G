@@ -834,38 +834,29 @@ Void TAppEncTop::encode()
   list<AccessUnit> outputAccessUnitsSad; ///< sad list of access units to write out.  is populated by the encoding process
 
   TComPicYuv cPicYuvTrueOrg;
-
   // allocate original YUV buffer
   if( m_isField )
   {
-    if (ipCSC == IPCOLOURSPACE_YCbCrtoY) {
-     pcPicYuvOrg->create  ( m_iSourceWidth, m_iSourceHeightOrg, CHROMA_400, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
-    } else {
-     pcPicYuvOrg->create  ( m_iSourceWidth, m_iSourceHeightOrg, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
-    }
+    pcPicYuvOrg->create  ( m_iSourceWidth, m_iSourceHeightOrg, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
     cPicYuvTrueOrg.create(m_iSourceWidth, m_iSourceHeightOrg, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true);
-    pcPicYuvOrgSad->create  ( m_iSourceWidth, m_iSourceHeightOrg, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
+    pcPicYuvOrgSad->create  ( m_iSourceWidth, m_iSourceHeightOrg, CHROMA_400, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
   }
   else
   {
-    if (ipCSC == IPCOLOURSPACE_YCbCrtoY) {
-     pcPicYuvOrg->create  ( m_iSourceWidth, m_iSourceHeightOrg, CHROMA_400, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
-    } else {
-     pcPicYuvOrg->create  ( m_iSourceWidth, m_iSourceHeightOrg, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
-    }
+    pcPicYuvOrg->create  ( m_iSourceWidth, m_iSourceHeight, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
     cPicYuvTrueOrg.create(m_iSourceWidth, m_iSourceHeight, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
-    // pcPicYuvOrgSad->create  ( m_iSourceWidth, m_iSourceHeightOrg, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
+    pcPicYuvOrgSad->create  ( m_iSourceWidth, m_iSourceHeight, CHROMA_400, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
   }
 
   while ( !bEos )
   {
     // get buffers
     xGetBuffer(pcPicYuvRec, false);
-    //xGetBuffer(pcPicYuvRecSad, true); //Make pcPicYuvRecSad?
+    xGetBuffer(pcPicYuvRecSad, true); //Make pcPicYuvRecSad?
 
     // read input YUV file
     m_cTVideoIOYuvInputFile.read( pcPicYuvOrg, &cPicYuvTrueOrg, ipCSC, m_aiPad, m_InputChromaFormatIDC, m_bClipInputVideoToRec709Range );
-    //m_cTVideoIOYuvInputFile.read( pcPicYuvOrgSad, &cPicYuvTrueOrg, ipCSC, m_aiPad, m_InputChromaFormatIDC, m_bClipInputVideoToRec709Range );
+    m_cTVideoIOYuvInputFile.read( pcPicYuvOrgSad, &cPicYuvTrueOrg, ipCSC, m_aiPad, m_InputChromaFormatIDC, m_bClipInputVideoToRec709Range );
 
     // increase number of received frames
     m_iFrameRcvd++;

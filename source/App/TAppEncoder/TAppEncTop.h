@@ -65,6 +65,7 @@ private:
   TVideoIOYuv                m_cTVideoIOYuvReconFileSad;       ///< output reconstruction file
 
   TComList<TComPicYuv*>      m_cListPicYuvRec;              ///< list of reconstruction YUV files
+  TComList<TComPicYuv*>      m_cListPicYuvRecSad;              ///< list of reconstruction YUV files
 
   Int                        m_iFrameRcvd;                  ///< number of received frames
 

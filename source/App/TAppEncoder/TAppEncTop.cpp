@@ -418,7 +418,7 @@ Void TAppEncTop::xInitLibCfg()
 
   m_cTEncTopSad.setVPS(&vps);
 
-  m_cTEncTopSad.setProfile                                           ( m_profile);
+  m_cTEncTopSad.setProfile                                           ( Profile::MONOCHROME_8 );
   m_cTEncTopSad.setLevel                                             ( m_levelTier, m_level);
   m_cTEncTopSad.setProgressiveSourceFlag                             ( m_progressiveSourceFlag);
   m_cTEncTopSad.setInterlacedSourceFlag                              ( m_interlacedSourceFlag);
@@ -495,7 +495,7 @@ Void TAppEncTop::xInitLibCfg()
   m_cTEncTopSad.setChromaCbQpOffset                                  ( m_cbQpOffset     );
   m_cTEncTopSad.setChromaCrQpOffset                                  ( m_crQpOffset  );
 
-  m_cTEncTopSad.setChromaFormatIdc                                   ( m_chromaFormatIDC  );
+  m_cTEncTopSad.setChromaFormatIdc                                   ( 400  );
 
 #if ADAPTIVE_QP_SELECTION
   m_cTEncTopSad.setUseAdaptQpSelect                                  ( m_bUseAdaptQpSelect   );
@@ -857,6 +857,7 @@ Void TAppEncTop::encode()
   {
     // get buffers
     xGetBuffer(pcPicYuvRec);
+    xGetBuffer(pcPicYuvRec);
 
     // read input YUV file
     m_cTVideoIOYuvInputFile.read( pcPicYuvOrg, &cPicYuvTrueOrg, ipCSC, m_aiPad, m_InputChromaFormatIDC, m_bClipInputVideoToRec709Range );
@@ -881,12 +882,12 @@ Void TAppEncTop::encode()
     if ( m_isField )
     {
       m_cTEncTop.encode( bEos, flush ? 0 : pcPicYuvOrg, flush ? 0 : &cPicYuvTrueOrg, snrCSC, m_cListPicYuvRec, outputAccessUnits, iNumEncoded, m_isTopFieldFirst );
-      m_cTEncTopSad.encode( bEos, flush ? 0 : pcPicYuvOrg, flush ? 0 : &cPicYuvTrueOrg, snrCSC, m_cListPicYuvRec, outputAccessUnitsSad, iNumEncoded, m_isTopFieldFirst );
+      m_cTEncTopSad.encode( bEos, flush ? 0 : pcPicYuvOrg, flush ? 0 : &cPicYuvTrueOrg, snrCSC, m_cListPicYuvRecSad, outputAccessUnitsSad, iNumEncoded, m_isTopFieldFirst );
     }
     else
     {
       m_cTEncTop.encode( bEos, flush ? 0 : pcPicYuvOrg, flush ? 0 : &cPicYuvTrueOrg, snrCSC, m_cListPicYuvRec, outputAccessUnits, iNumEncoded );
-      m_cTEncTopSad.encode( bEos, flush ? 0 : pcPicYuvOrg, flush ? 0 : &cPicYuvTrueOrg, snrCSC, m_cListPicYuvRec, outputAccessUnitsSad, iNumEncoded );
+      m_cTEncTopSad.encode( bEos, flush ? 0 : pcPicYuvOrg, flush ? 0 : &cPicYuvTrueOrg, snrCSC, m_cListPicYuvRecSad, outputAccessUnitsSad, iNumEncoded );
     }
 
     // write bistream to file if necessary
@@ -931,24 +932,26 @@ Void TAppEncTop::encode()
  - end of the list has the latest picture
  .
  */
-Void TAppEncTop::xGetBuffer( TComPicYuv*& rpcPicYuvRec)
+Void TAppEncTop::xGetBuffer( TComPicYuv*& rpcPicYuvRec, bool isSad)
 {
   assert( m_iGOPSize > 0 );
 
   // org. buffer
-  if ( m_cListPicYuvRec.size() >= (UInt)m_iGOPSize ) // buffer will be 1 element longer when using field coding, to maintain first field whilst processing second.
-  {
-    rpcPicYuvRec = m_cListPicYuvRec.popFront();
 
+  TComList<TComPicYuv*> &cListPicYuvRec = isSad ? m_cListPicYuvRecSad : m_cListPicYuvRec;
+  if ( cListPicYuvRec.size() >= (UInt)m_iGOPSize ) // buffer will be 1 element longer when using field coding, to maintain first field whilst processing second.
+  {
+    rpcPicYuvRec = cListPicYuvRec.popFront();
   }
   else
   {
     rpcPicYuvRec = new TComPicYuv;
 
-    rpcPicYuvRec->create( m_iSourceWidth, m_iSourceHeight, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
+    rpcPicYuvRec->create( m_iSourceWidth, m_iSourceHeight, isSad ? m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
 
   }
-  m_cListPicYuvRec.pushBack( rpcPicYuvRec );
+  cListPicYuvRec.pushBack( rpcPicYuvRec );
+  
 }
 
 Void TAppEncTop::xDeleteBuffer( )
@@ -956,6 +959,17 @@ Void TAppEncTop::xDeleteBuffer( )
   TComList<TComPicYuv*>::iterator iterPicYuvRec  = m_cListPicYuvRec.begin();
 
   Int iSize = Int( m_cListPicYuvRec.size() );
+
+  for ( Int i = 0; i < iSize; i++ )
+  {
+    TComPicYuv*  pcPicYuvRec  = *(iterPicYuvRec++);
+    pcPicYuvRec->destroy();
+    delete pcPicYuvRec; pcPicYuvRec = NULL;
+  }
+
+  iterPicYuvRecSad = m_cListPicYuvRecSad.begin();
+
+  iSize = Int( m_cListPicYuvRecSad.size() );
 
   for ( Int i = 0; i < iSize; i++ )
   {
@@ -980,7 +994,13 @@ Void TAppEncTop::xWriteOutput(std::ostream& bitstreamFile, Int iNumEncoded, cons
   {
     //Reinterlace fields
     Int i;
-    TComList<TComPicYuv*>::iterator iterPicYuvRec = m_cListPicYuvRec.end();
+    TComList<TComPicYuv*>::iterator iterPicYuvRec;
+    if (!isSad) {
+      iterPicYuvRec = = m_cListPicYuvRec.end()
+    } else {
+      iterPicYuvRec = m_cListPicYuvRecSad.end();
+    };
+    
     list<AccessUnit>::const_iterator iterBitstream = accessUnits.begin();
 
     for ( i = 0; i < iNumEncoded; i++ )
@@ -1017,7 +1037,13 @@ Void TAppEncTop::xWriteOutput(std::ostream& bitstreamFile, Int iNumEncoded, cons
   {
     Int i;
 
-    TComList<TComPicYuv*>::iterator iterPicYuvRec = m_cListPicYuvRec.end();
+    TComList<TComPicYuv*>::iterator iterPicYuvRec;
+    if (!isSad) {
+      iterPicYuvRec = = m_cListPicYuvRec.end()
+    } else {
+      iterPicYuvRec = m_cListPicYuvRecSad.end();
+    };
+
     list<AccessUnit>::const_iterator iterBitstream = accessUnits.begin();
 
     for ( i = 0; i < iNumEncoded; i++ )

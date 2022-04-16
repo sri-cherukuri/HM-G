@@ -884,8 +884,7 @@ Void TAppEncTop::encode()
     xGetBuffer(pcPicYuvRecSad, true); //Make pcPicYuvRecSad?
 
     // read input YUV file
-    m_cTVideoIOYuvInputFile.read( pcPicYuvOrg, &cPicYuvTrueOrg, ipCSC, m_aiPad, m_InputChromaFormatIDC, m_bClipInputVideoToRec709Range, false);
-    m_cTVideoIOYuvInputFile.read( pcPicYuvOrgSad, &cPicYuvTrueOrgSad, ipCSC, m_aiPad, m_InputChromaFormatIDC, m_bClipInputVideoToRec709Range, true);
+    m_cTVideoIOYuvInputFile.read( pcPicYuvOrg, pcPicYuvOrgSad, &cPicYuvTrueOrg, &cPicYuvTrueOrgSad, ipCSC, m_aiPad, m_InputChromaFormatIDC, m_bClipInputVideoToRec709Range);
 
     // increase number of received frames
     m_iFrameRcvd++;

@@ -153,9 +153,8 @@ Void TVideoIOYuv::open( const std::string &fileName, Bool bWriteMode, const Int 
   else
   {
     m_cHandle.open( fileName.c_str(), ios::binary | ios::in );
-    m_cHandleSad.open( fileName.c_str(), ios::binary | ios::in );
 
-    if( m_cHandle.fail() || m_cHandleSad.fail() )
+    if( m_cHandle.fail() )
     {
       printf("\nfailed to open Input YUV file\n");
       exit(0);
@@ -248,6 +247,7 @@ Void TVideoIOYuv::skipFrames(UInt numFrames, UInt width, UInt height, ChromaForm
  * @return true for success, false in case of error
  */
 static Bool readPlane(Pel* dst,
+                      Pel* dstSad,
                       istream& fd,
                       Bool is16bit,
                       UInt stride444,
@@ -278,29 +278,14 @@ static Bool readPlane(Pel* dst,
   std::vector<UChar> bufVec(stride_file);
   UChar *buf=&(bufVec[0]);
 
+  bool goodForSad = true;
   if (compID!=COMPONENT_Y && (fileFormat==CHROMA_400 || destFormat==CHROMA_400))
   {
-    if (destFormat!=CHROMA_400)
-    {
-      // set chrominance data to mid-range: (1<<(fileBitDepth-1))
-      const Pel value=Pel(1<<(fileBitDepth-1));
-      for (UInt y = 0; y < full_height_dest; y++, dst+=stride_dest)
-      {
-        for (UInt x = 0; x < full_width_dest; x++)
-        {
-          dst[x] = value;
-        }
-      }
-    }
-
     if (fileFormat!=CHROMA_400)
     {
-      const UInt height_file      = height444>>csy_file;
-      fd.seekg(height_file*stride_file, ios::cur);
-      if (fd.eof() || fd.fail() )
-      {
-        return false;
-      }
+      goodForSad = false;
+      // const UInt height_file      = height444>>csy_file;
+      // fd.seekg(height_file*stride_file, ios::cur);
     }
   }
   else
@@ -331,6 +316,9 @@ static Bool readPlane(Pel* dst,
             for (UInt x = 0; x < width_dest; x++)
             {
               dst[x] = buf[x<<sx];
+              if (goodForSad) {
+                dstSad[x] = dst[x];
+              }
             }
           }
           else
@@ -338,6 +326,9 @@ static Bool readPlane(Pel* dst,
             for (UInt x = 0; x < width_dest; x++)
             {
               dst[x] = Pel(buf[(x<<sx)*2+0]) | (Pel(buf[(x<<sx)*2+1])<<8);
+              if (goodForSad) {
+                dstSad[x] = dst[x];
+              }
             }
           }
         }
@@ -350,6 +341,9 @@ static Bool readPlane(Pel* dst,
             for (UInt x = 0; x < width_dest; x++)
             {
               dst[x] = buf[x>>sx];
+              if (goodForSad) {
+                dstSad[x] = dst[x];
+              }
             }
           }
           else
@@ -357,27 +351,40 @@ static Bool readPlane(Pel* dst,
             for (UInt x = 0; x < width_dest; x++)
             {
               dst[x] = Pel(buf[(x>>sx)*2+0]) | (Pel(buf[(x>>sx)*2+1])<<8);
+              if (goodForSad) {
+                dstSad[x] = dst[x];
+              }
             }
           }
         }
 
         // process right hand side padding
         const Pel val=dst[width_dest-1];
+        const Pel valSad=dstSad[width_dest-1];
         for (UInt x = width_dest; x < full_width_dest; x++)
         {
           dst[x] = val;
+          if (goodForSad) {
+            dstSad[x] = valSad;
+          }
         }
 
         dst += stride_dest;
+        if (goodForSad) {
+          dstSad += stride_dest;
+        }
       }
     }
 
     // process lower padding
-    for (UInt y = height_dest; y < full_height_dest; y++, dst+=stride_dest)
+    for (UInt y = height_dest; y < full_height_dest; y++, dst+=stride_dest, dstSad+=stride_dest)
     {
       for (UInt x = 0; x < full_width_dest; x++)
       {
         dst[x] = (dst - stride_dest)[x];
+        if (goodForSad) {
+          dstSad[x] = (dstSad - stride_dest)[x];
+        }
       }
     }
   }
@@ -673,7 +680,7 @@ static Bool writeField(ostream& fd, Pel* top, Pel* bottom, Bool is16bit,
  * @param format           chroma format
  * @return true for success, false in case of error
  */
-Bool TVideoIOYuv::read ( TComPicYuv*  pPicYuvUser, TComPicYuv* pPicYuvTrueOrg, const InputColourSpaceConversion ipcsc, Int aiPad[2], ChromaFormat format, const Bool bClipToRec709, bool isSad )
+Bool TVideoIOYuv::read ( TComPicYuv* pPicYuvUser, TComPicYuv* pPicYuvUserSad, TComPicYuv* pPicYuvTrueOrg, TComPicYuv* pPicYuvTrueOrgSad, const InputColourSpaceConversion ipcsc, Int aiPad[2], ChromaFormat format, const Bool bClipToRec709 )
 {
   // check end-of-file
   if ( isEof() )
@@ -719,7 +726,7 @@ Bool TVideoIOYuv::read ( TComPicYuv*  pPicYuvUser, TComPicYuv* pPicYuvTrueOrg, c
     const Pel minval = b709Compliance? ((   1 << (desired_bitdepth - 8))   ) : 0;
     const Pel maxval = b709Compliance? ((0xff << (desired_bitdepth - 8)) -1) : (1 << desired_bitdepth) - 1;
 
-    if (! readPlane(pPicYuv->getAddr(compID), isSad ? m_cHandleSad : m_cHandle, is16bit, stride444, width444, height444, pad_h444, pad_v444, compID, pPicYuv->getChromaFormat(), format, m_fileBitdepth[chType]))
+    if (! readPlane(pPicYuvTrueOrg->getAddr(compID), pPicYuvTrueOrgSad->getAddr(compID), m_cHandle, is16bit, stride444, width444, height444, pad_h444, pad_v444, compID, pPicYuv->getChromaFormat(), format, m_fileBitdepth[chType]))
     {
       return false;
     }
@@ -728,10 +735,12 @@ Bool TVideoIOYuv::read ( TComPicYuv*  pPicYuvUser, TComPicYuv* pPicYuvTrueOrg, c
     {
       const UInt csx=getComponentScaleX(compID, pPicYuv->getChromaFormat());
       const UInt csy=getComponentScaleY(compID, pPicYuv->getChromaFormat());
-      scalePlane(pPicYuv->getAddr(compID), stride444>>csx, width_full444>>csx, height_full444>>csy, m_bitdepthShift[chType], minval, maxval);
+      scalePlane(pPicYuvTrueOrg->getAddr(compID), stride444>>csx, width_full444>>csx, height_full444>>csy, m_bitdepthShift[chType], minval, maxval);
+      scalePlane(pPicYuvTrueOrgSad->getAddr(compID), stride444>>csx, width_full444>>csx, height_full444>>csy, m_bitdepthShift[chType], minval, maxval);
     }
   }
   ColourSpaceConvert(*pPicYuvTrueOrg, *pPicYuvUser, ipcsc, true);
+  ColourSpaceConvert(*pPicYuvTrueOrgSad, *pPicYuvUserSad, ipcsc, true);
 
   return true;
 }

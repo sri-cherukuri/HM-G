@@ -44,6 +44,7 @@
 #include <iomanip>
 
 #include "TAppEncTop.h"
+#include "TLibCommon/TComRom.h"
 #include "TLibEncoder/AnnexBwrite.h"
 
 using namespace std;
@@ -774,6 +775,9 @@ Void TAppEncTop::xCreateLib()
     m_cTVideoIOYuvReconFileSad.open(std::string("sad" + m_reconFileName), true, m_outputBitDepth, m_outputBitDepth, m_internalBitDepth);  // write mode
   }
 
+  //ROM
+  initROM();
+
   // Neo Decoder
   m_cTEncTop.create();
   m_cTEncTopSad.create();
@@ -789,6 +793,9 @@ Void TAppEncTop::xDestroyLib()
   // Neo Decoder
   m_cTEncTop.destroy();
   m_cTEncTopSad.destroy();
+
+  
+  destroyROM();
 }
 
 Void TAppEncTop::xInitLib(Bool isFieldCoding)
@@ -904,10 +911,8 @@ Void TAppEncTop::encode()
     }
     else
     {
-      std::cerr << "encode 1" << std::endl;
       m_cTEncTop.encode( bEos, flush ? 0 : pcPicYuvOrg, flush ? 0 : &cPicYuvTrueOrg, snrCSC, m_cListPicYuvRec, outputAccessUnits, iNumEncoded );
       
-      std::cerr << "encode 2" << std::endl;
       m_cTEncTopSad.encode( bEos, flush ? 0 : pcPicYuvOrgSad, flush ? 0 : &cPicYuvTrueOrgSad, snrCSCSad, m_cListPicYuvRecSad, outputAccessUnitsSad, iNumEncodedSad );
     }
 

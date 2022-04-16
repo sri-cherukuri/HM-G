@@ -1194,7 +1194,6 @@ Bool TAppEncCfg::parseCfg( Int argc, TChar* argv[])
 
   if (extendedProfile >= 1000 && extendedProfile <= 12316)
   {
-    std::cerr << "ENTERED HERE 1" << std::endl;
     m_profile = Profile::MAINREXT;
     if (m_bitDepthConstraint != 0 || tmpConstraintChromaFormat != 0)
     {
@@ -1252,9 +1251,6 @@ Bool TAppEncCfg::parseCfg( Int argc, TChar* argv[])
       }
       else
       {
-        
-    std::cerr << "ENTERED HERE 2" << std::endl;
-
         m_chromaFormatConstraint = NUM_CHROMA_FORMAT;
         automaticallySelectRExtProfile(bUsingGeneralRExtTools,
                                        bUsingChromaQPAdjustment,
@@ -1263,7 +1259,7 @@ Bool TAppEncCfg::parseCfg( Int argc, TChar* argv[])
                                        m_bitDepthConstraint,
                                        m_chromaFormatConstraint,
                                        m_chromaFormatIDC==CHROMA_400 ? m_internalBitDepth[CHANNEL_TYPE_LUMA] : std::max(m_internalBitDepth[CHANNEL_TYPE_LUMA], m_internalBitDepth[CHANNEL_TYPE_CHROMA]),
-                                       m_chromaFormatIDC); //sad
+                                       m_chromaFormatIDC);
       }
     }
     else if (m_bitDepthConstraint == 0 || tmpConstraintChromaFormat == 0)
@@ -1278,10 +1274,8 @@ Bool TAppEncCfg::parseCfg( Int argc, TChar* argv[])
   }
   else
   {
-    
-    std::cerr << "ENTERED HERE 3" << std::endl;
     m_chromaFormatConstraint = (tmpConstraintChromaFormat == 0) ? m_chromaFormatIDC : numberToChromaFormat(tmpConstraintChromaFormat);
-    m_bitDepthConstraint = (m_profile == Profile::MAIN10?10:8); //sad?
+    m_bitDepthConstraint = (m_profile == Profile::MAIN10?10:8);
   }
 
   

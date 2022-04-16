@@ -87,7 +87,7 @@ TEncTop::~TEncTop()
 Void TEncTop::create ()
 {
   // initialize global variables
-  initROM();
+  // initROM();
 
   // create processing unit classes
   m_cGOPEncoder.        create( );
@@ -173,7 +173,7 @@ Void TEncTop::destroy ()
   delete [] m_pppcBinCoderCABAC;
 
   // destroy ROM
-  destroyROM();
+  // destroyROM();
 
   return;
 }
@@ -351,10 +351,8 @@ Void TEncTop::encode( Bool flush, TComPicYuv* pcPicYuvOrg, TComPicYuv* pcPicYuvT
 
   // compress GOP
 
-  std::cerr << "compressGOP begin" << std::endl;
   m_cGOPEncoder.compressGOP(m_iPOCLast, m_iNumPicRcvd, m_cListPic, rcListPicYuvRecOut, accessUnitsOut, false, false, snrCSC, m_printFrameMSE);
 
-  std::cerr << "compressGOP end" << std::endl;
   if ( m_RCEnableRateControl )
   {
     m_cRateCtrl.destroyRCGOP();

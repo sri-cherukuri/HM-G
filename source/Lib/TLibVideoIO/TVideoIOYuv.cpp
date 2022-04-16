@@ -153,8 +153,9 @@ Void TVideoIOYuv::open( const std::string &fileName, Bool bWriteMode, const Int 
   else
   {
     m_cHandle.open( fileName.c_str(), ios::binary | ios::in );
+    m_cHandleSad.open( fileName.c_str(), ios::binary | ios::in );
 
-    if( m_cHandle.fail() )
+    if( m_cHandle.fail() || m_cHandleSad.fail() )
     {
       printf("\nfailed to open Input YUV file\n");
       exit(0);
@@ -672,7 +673,7 @@ static Bool writeField(ostream& fd, Pel* top, Pel* bottom, Bool is16bit,
  * @param format           chroma format
  * @return true for success, false in case of error
  */
-Bool TVideoIOYuv::read ( TComPicYuv*  pPicYuvUser, TComPicYuv*  pPicYuvUserSad, TComPicYuv* pPicYuvTrueOrg, TComPicYuv* pPicYuvTrueOrgSad, const InputColourSpaceConversion ipcsc, Int aiPad[2], ChromaFormat format, const Bool bClipToRec709 )
+Bool TVideoIOYuv::read ( TComPicYuv*  pPicYuvUser, TComPicYuv* pPicYuvTrueOrg, const InputColourSpaceConversion ipcsc, Int aiPad[2], ChromaFormat format, const Bool bClipToRec709, bool isSad )
 {
   // check end-of-file
   if ( isEof() )
@@ -718,7 +719,7 @@ Bool TVideoIOYuv::read ( TComPicYuv*  pPicYuvUser, TComPicYuv*  pPicYuvUserSad, 
     const Pel minval = b709Compliance? ((   1 << (desired_bitdepth - 8))   ) : 0;
     const Pel maxval = b709Compliance? ((0xff << (desired_bitdepth - 8)) -1) : (1 << desired_bitdepth) - 1;
 
-    if (! readPlane(pPicYuv->getAddr(compID), m_cHandle, is16bit, stride444, width444, height444, pad_h444, pad_v444, compID, pPicYuv->getChromaFormat(), format, m_fileBitdepth[chType]))
+    if (! readPlane(pPicYuv->getAddr(compID), isSad ? m_cHandleSad : m_cHandle, is16bit, stride444, width444, height444, pad_h444, pad_v444, compID, pPicYuv->getChromaFormat(), format, m_fileBitdepth[chType]))
     {
       return false;
     }
@@ -730,10 +731,7 @@ Bool TVideoIOYuv::read ( TComPicYuv*  pPicYuvUser, TComPicYuv*  pPicYuvUserSad, 
       scalePlane(pPicYuv->getAddr(compID), stride444>>csx, width_full444>>csx, height_full444>>csy, m_bitdepthShift[chType], minval, maxval);
     }
   }
-  std::cerr << "Read part 1" << std::endl;
   ColourSpaceConvert(*pPicYuvTrueOrg, *pPicYuvUser, ipcsc, true);
-  std::cerr << "Read part 2" << std::endl;
-  ColourSpaceConvert(*pPicYuvTrueOrgSad, *pPicYuvUserSad, ipcsc, true);
 
   return true;
 }

@@ -82,6 +82,21 @@ Void TAppEncTop::xInitLibCfg()
     vps.setMaxDecPicBuffering                                     ( m_maxDecPicBuffering[i], i );
   }
 
+  
+  TComVPS vpsSad;
+
+  vpsSad.setMaxTLayers                                               ( m_maxTempLayer );
+  if (m_maxTempLayer == 1)
+  {
+    vpsSad.setTemporalNestingFlag(true);
+  }
+  vpsSad.setMaxLayers                                                ( 1 );
+  for(Int i = 0; i < MAX_TLAYER; i++)
+  {
+    vpsSad.setNumReorderPics                                         ( m_numReorderPics[i], i );
+    vpsSad.setMaxDecPicBuffering                                     ( m_maxDecPicBuffering[i], i );
+  }
+
 
   m_cTEncTop.setVPS(&vps);
 
@@ -416,18 +431,18 @@ Void TAppEncTop::xInitLibCfg()
 
   //GENIUS
 
-  m_cTEncTopSad.setVPS(&vps);
+  m_cTEncTopSad.setVPS(&vpsSad);
 
-  m_cTEncTopSad.setProfile                                           ( Profile::Name(1008) );
+  m_cTEncTopSad.setProfile                                           ( Profile::MAINREXT);
   m_cTEncTopSad.setLevel                                             ( m_levelTier, m_level);
   m_cTEncTopSad.setProgressiveSourceFlag                             ( m_progressiveSourceFlag);
   m_cTEncTopSad.setInterlacedSourceFlag                              ( m_interlacedSourceFlag);
   m_cTEncTopSad.setNonPackedConstraintFlag                           ( m_nonPackedConstraintFlag);
   m_cTEncTopSad.setFrameOnlyConstraintFlag                           ( m_frameOnlyConstraintFlag);
-  m_cTEncTopSad.setBitDepthConstraintValue                           ( m_bitDepthConstraint );
-  m_cTEncTopSad.setChromaFormatConstraintValue                       ( m_chromaFormatConstraint );
-  m_cTEncTopSad.setIntraConstraintFlag                               ( m_intraConstraintFlag );
-  m_cTEncTopSad.setOnePictureOnlyConstraintFlag                      ( m_onePictureOnlyConstraintFlag );
+  m_cTEncTopSad.setBitDepthConstraintValue                           ( m_bitDepthConstraintSad );
+  m_cTEncTopSad.setChromaFormatConstraintValue                       ( m_chromaFormatConstraintSad );
+  m_cTEncTopSad.setIntraConstraintFlag                               ( m_intraConstraintFlagSad );
+  m_cTEncTopSad.setOnePictureOnlyConstraintFlag                      ( m_onePictureOnlyConstraintFlagSad );
   m_cTEncTopSad.setLowerBitRateConstraintFlag                        ( m_lowerBitRateConstraintFlag );
 
   m_cTEncTopSad.setPrintMSEBasedSequencePSNR                         ( m_printMSEBasedSequencePSNR);
@@ -522,7 +537,7 @@ Void TAppEncTop::xInitLibCfg()
   m_cTEncTopSad.setRDpenalty                                         ( m_rdPenalty );
   m_cTEncTopSad.setMaxCUWidth                                        ( m_uiMaxCUWidth );
   m_cTEncTopSad.setMaxCUHeight                                       ( m_uiMaxCUHeight );
-  m_cTEncTopSad.setMaxTotalCUDepth                                   ( m_uiMaxTotalCUDepth );
+  m_cTEncTopSad.setMaxTotalCUDepth                                   ( m_uiMaxTotalCUDepthSad );
   m_cTEncTopSad.setLog2DiffMaxMinCodingBlockSize                     ( m_uiLog2DiffMaxMinCodingBlockSize );
   m_cTEncTopSad.setQuadtreeTULog2MaxSize                             ( m_uiQuadtreeTULog2MaxSize );
   m_cTEncTopSad.setQuadtreeTULog2MinSize                             ( m_uiQuadtreeTULog2MinSize );
@@ -756,7 +771,7 @@ Void TAppEncTop::xCreateLib()
   if (!m_reconFileName.empty())
   {
     m_cTVideoIOYuvReconFile.open(m_reconFileName, true, m_outputBitDepth, m_outputBitDepth, m_internalBitDepth);  // write mode
-    m_cTVideoIOYuvReconFileSad.open(std::string(m_reconFileName + "Sad"), true, m_outputBitDepth, m_outputBitDepth, m_internalBitDepth);  // write mode
+    m_cTVideoIOYuvReconFileSad.open(std::string("sad" + m_reconFileName), true, m_outputBitDepth, m_outputBitDepth, m_internalBitDepth);  // write mode
   }
 
   // Neo Decoder
@@ -797,7 +812,7 @@ Void TAppEncTop::xInitLib(Bool isFieldCoding)
 Void TAppEncTop::encode()
 {
   fstream bitstreamFile(m_bitstreamFileName.c_str(), fstream::binary | fstream::out);
-  fstream bitstreamFileSad(std::string(m_bitstreamFileName + "Sad").c_str(), fstream::binary | fstream::out);
+  fstream bitstreamFileSad(std::string("sad" + m_bitstreamFileName).c_str(), fstream::binary | fstream::out);
 
   if (!bitstreamFile)
   {
@@ -825,10 +840,12 @@ Void TAppEncTop::encode()
 
   // main encoder loop
   Int   iNumEncoded = 0;
+  Int   iNumEncodedSad = 0;
   Bool  bEos = false;
 
   const InputColourSpaceConversion ipCSC  =  m_inputColourSpaceConvert;
   const InputColourSpaceConversion snrCSC = (!m_snrInternalColourSpace) ? m_inputColourSpaceConvert : IPCOLOURSPACE_UNCHANGED;
+  const InputColourSpaceConversion snrCSCSad = (!m_snrInternalColourSpace) ? m_inputColourSpaceConvert : IPCOLOURSPACE_UNCHANGED;
 
   list<AccessUnit> outputAccessUnits; ///< list of access units to write out.  is populated by the encoding process
   list<AccessUnit> outputAccessUnitsSad; ///< sad list of access units to write out.  is populated by the encoding process
@@ -839,18 +856,18 @@ Void TAppEncTop::encode()
   if( m_isField )
   {
     pcPicYuvOrg->create  ( m_iSourceWidth, m_iSourceHeightOrg, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
-    pcPicYuvOrgSad->create  ( m_iSourceWidth, m_iSourceHeightOrg, CHROMA_400, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
+    pcPicYuvOrgSad->create  ( m_iSourceWidth, m_iSourceHeightOrg, CHROMA_400, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepthSad, true );
 
     cPicYuvTrueOrg.create(m_iSourceWidth, m_iSourceHeightOrg, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true);
-    cPicYuvTrueOrgSad.create(m_iSourceWidth, m_iSourceHeightOrg, CHROMA_400, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true);
+    cPicYuvTrueOrgSad.create(m_iSourceWidth, m_iSourceHeightOrg, CHROMA_400, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepthSad, true);
   }
   else
   {
     pcPicYuvOrg->create  ( m_iSourceWidth, m_iSourceHeight, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
-    pcPicYuvOrgSad->create  ( m_iSourceWidth, m_iSourceHeight, CHROMA_400, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
+    pcPicYuvOrgSad->create  ( m_iSourceWidth, m_iSourceHeight, CHROMA_400, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepthSad, true );
 
     cPicYuvTrueOrg.create(m_iSourceWidth, m_iSourceHeight, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
-    cPicYuvTrueOrgSad.create(m_iSourceWidth, m_iSourceHeight, CHROMA_400, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
+    cPicYuvTrueOrgSad.create(m_iSourceWidth, m_iSourceHeight, CHROMA_400, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepthSad, true );
   }
 
   while ( !bEos )
@@ -860,8 +877,8 @@ Void TAppEncTop::encode()
     xGetBuffer(pcPicYuvRecSad, true); //Make pcPicYuvRecSad?
 
     // read input YUV file
-    m_cTVideoIOYuvInputFile.read( pcPicYuvOrg, pcPicYuvOrgSad, &cPicYuvTrueOrg, &cPicYuvTrueOrgSad, ipCSC, m_aiPad, m_InputChromaFormatIDC, m_bClipInputVideoToRec709Range );
-    // m_cTVideoIOYuvInputFile.read( pcPicYuvOrgSad, &cPicYuvTrueOrg, ipCSC, m_aiPad, m_InputChromaFormatIDC, m_bClipInputVideoToRec709Range );
+    m_cTVideoIOYuvInputFile.read( pcPicYuvOrg, &cPicYuvTrueOrg, ipCSC, m_aiPad, m_InputChromaFormatIDC, m_bClipInputVideoToRec709Range, false);
+    m_cTVideoIOYuvInputFile.read( pcPicYuvOrgSad, &cPicYuvTrueOrgSad, ipCSC, m_aiPad, m_InputChromaFormatIDC, m_bClipInputVideoToRec709Range, true);
 
     // increase number of received frames
     m_iFrameRcvd++;
@@ -883,19 +900,22 @@ Void TAppEncTop::encode()
     if ( m_isField )
     {
       m_cTEncTop.encode( bEos, flush ? 0 : pcPicYuvOrg, flush ? 0 : &cPicYuvTrueOrg, snrCSC, m_cListPicYuvRec, outputAccessUnits, iNumEncoded, m_isTopFieldFirst );
-      m_cTEncTopSad.encode( bEos, flush ? 0 : pcPicYuvOrgSad, flush ? 0 : &cPicYuvTrueOrgSad, snrCSC, m_cListPicYuvRecSad, outputAccessUnitsSad, iNumEncoded, m_isTopFieldFirst );
+      m_cTEncTopSad.encode( bEos, flush ? 0 : pcPicYuvOrgSad, flush ? 0 : &cPicYuvTrueOrgSad, snrCSCSad, m_cListPicYuvRecSad, outputAccessUnitsSad, iNumEncodedSad, m_isTopFieldFirst );
     }
     else
     {
+      std::cerr << "encode 1" << std::endl;
       m_cTEncTop.encode( bEos, flush ? 0 : pcPicYuvOrg, flush ? 0 : &cPicYuvTrueOrg, snrCSC, m_cListPicYuvRec, outputAccessUnits, iNumEncoded );
-      m_cTEncTopSad.encode( bEos, flush ? 0 : pcPicYuvOrgSad, flush ? 0 : &cPicYuvTrueOrgSad, snrCSC, m_cListPicYuvRecSad, outputAccessUnitsSad, iNumEncoded );
+      
+      std::cerr << "encode 2" << std::endl;
+      m_cTEncTopSad.encode( bEos, flush ? 0 : pcPicYuvOrgSad, flush ? 0 : &cPicYuvTrueOrgSad, snrCSCSad, m_cListPicYuvRecSad, outputAccessUnitsSad, iNumEncodedSad );
     }
 
     // write bistream to file if necessary
     if ( iNumEncoded > 0 )
     {
       xWriteOutput(bitstreamFile, iNumEncoded, outputAccessUnits, false);
-      xWriteOutput(bitstreamFileSad, iNumEncoded, outputAccessUnitsSad, true);
+      xWriteOutput(bitstreamFileSad, iNumEncodedSad, outputAccessUnitsSad, true);
       outputAccessUnits.clear();
       outputAccessUnitsSad.clear();
     }
@@ -954,7 +974,7 @@ Void TAppEncTop::xGetBuffer( TComPicYuv*& rpcPicYuvRec, bool isSad )
   {
     rpcPicYuvRec = new TComPicYuv;
 
-    rpcPicYuvRec->create( m_iSourceWidth, m_iSourceHeight, isSad ? CHROMA_400 : m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
+    rpcPicYuvRec->create( m_iSourceWidth, m_iSourceHeight, isSad ? CHROMA_400 : m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight,isSad ? m_uiMaxTotalCUDepthSad : m_uiMaxTotalCUDepth, true );
 
   }
   cListPicYuvRec.pushBack( rpcPicYuvRec );

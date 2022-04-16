@@ -350,8 +350,11 @@ Void TEncTop::encode( Bool flush, TComPicYuv* pcPicYuvOrg, TComPicYuv* pcPicYuvT
   }
 
   // compress GOP
+
+  std::cerr << "compressGOP begin" << std::endl;
   m_cGOPEncoder.compressGOP(m_iPOCLast, m_iNumPicRcvd, m_cListPic, rcListPicYuvRecOut, accessUnitsOut, false, false, snrCSC, m_printFrameMSE);
 
+  std::cerr << "compressGOP end" << std::endl;
   if ( m_RCEnableRateControl )
   {
     m_cRateCtrl.destroyRCGOP();

@@ -55,6 +55,7 @@ class TVideoIOYuv
 {
 private:
   fstream   m_cHandle;                                      ///< file handle
+  fstream   m_cHandleSad;                                      ///< file handle
   Int       m_fileBitdepth[MAX_NUM_CHANNEL_TYPE]; ///< bitdepth of input/output video file
   Int       m_MSBExtendedBitDepth[MAX_NUM_CHANNEL_TYPE];  ///< bitdepth after addition of MSBs (with value 0)
   Int       m_bitdepthShift[MAX_NUM_CHANNEL_TYPE];  ///< number of bits to increase or decrease image by before/after write/read
@@ -72,7 +73,7 @@ public:
 
 
   // If fileFormat=NUM_CHROMA_FORMAT, use the format defined by pPicYuvTrueOrg
-  Bool  read  ( TComPicYuv* pPicYuv, TComPicYuv* pPicYuvSad, TComPicYuv* pPicYuvTrueOrg, TComPicYuv* pPicYuvTrueOrgSad, const InputColourSpaceConversion ipcsc, Int aiPad[2], ChromaFormat fileFormat=NUM_CHROMA_FORMAT, const Bool bClipToRec709=false );     ///< read one frame with padding parameter
+  Bool  read  ( TComPicYuv* pPicYuv, TComPicYuv* pPicYuvTrueOrg, const InputColourSpaceConversion ipcsc, Int aiPad[2], ChromaFormat fileFormat=NUM_CHROMA_FORMAT, const Bool bClipToRec709=false, bool isSad=false);     ///< read one frame with padding parameter
 
   // If fileFormat=NUM_CHROMA_FORMAT, use the format defined by pPicYuv
   Bool  write ( TComPicYuv* pPicYuv, const InputColourSpaceConversion ipCSC, Int confLeft=0, Int confRight=0, Int confTop=0, Int confBottom=0, ChromaFormat fileFormat=NUM_CHROMA_FORMAT, const Bool bClipToRec709=false );     ///< write one YUV frame with padding parameter

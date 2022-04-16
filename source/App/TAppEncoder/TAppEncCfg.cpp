@@ -596,7 +596,7 @@ automaticallySelectRExtProfile(const Bool bUsingGeneralRExtTools,
     \param  argv        array of arguments
     \retval             true when success
  */
-Bool TAppEncCfg::parseCfg( Int argc, TChar* argv[] )
+Bool TAppEncCfg::parseCfg( Int argc, TChar* argv[])
 {
   Bool do_help = false;
 
@@ -1169,7 +1169,7 @@ Bool TAppEncCfg::parseCfg( Int argc, TChar* argv[] )
   }
 
   m_InputChromaFormatIDC = numberToChromaFormat(tmpInputChromaFormat);
-  m_chromaFormatIDC      = ((tmpChromaFormat == 0) ? (m_InputChromaFormatIDC) : (numberToChromaFormat(tmpChromaFormat)));
+  m_chromaFormatIDC      = ((tmpChromaFormat == 0) ? (m_InputChromaFormatIDC) : (numberToChromaFormat(tmpChromaFormat))); //sad
 
   assert(tmpWeightedPredictionMethod>=0 && tmpWeightedPredictionMethod<=WP_PER_PICTURE_WITH_HISTOGRAM_AND_PER_COMPONENT_AND_CLIPPING_AND_EXTENSION);
   if (!(tmpWeightedPredictionMethod>=0 && tmpWeightedPredictionMethod<=WP_PER_PICTURE_WITH_HISTOGRAM_AND_PER_COMPONENT_AND_CLIPPING_AND_EXTENSION))
@@ -1194,6 +1194,7 @@ Bool TAppEncCfg::parseCfg( Int argc, TChar* argv[] )
 
   if (extendedProfile >= 1000 && extendedProfile <= 12316)
   {
+    std::cerr << "ENTERED HERE 1" << std::endl;
     m_profile = Profile::MAINREXT;
     if (m_bitDepthConstraint != 0 || tmpConstraintChromaFormat != 0)
     {
@@ -1246,11 +1247,14 @@ Bool TAppEncCfg::parseCfg( Int argc, TChar* argv[] )
           fprintf(stderr, "Error: Intra constraint flag must be true when one_picture_only_constraint_flag is true\n");
           exit(EXIT_FAILURE);
         }
-        const Int maxBitDepth = m_chromaFormatIDC==CHROMA_400 ? m_internalBitDepth[CHANNEL_TYPE_LUMA] : std::max(m_internalBitDepth[CHANNEL_TYPE_LUMA], m_internalBitDepth[CHANNEL_TYPE_CHROMA]);
-        m_bitDepthConstraint = maxBitDepth>8 ? 16:8;
+        const Int maxBitDepth = m_chromaFormatIDC==CHROMA_400 ? m_internalBitDepth[CHANNEL_TYPE_LUMA] : std::max(m_internalBitDepth[CHANNEL_TYPE_LUMA], m_internalBitDepth[CHANNEL_TYPE_CHROMA]); //sad
+        m_bitDepthConstraint = maxBitDepth>8 ? 16:8; //sad
       }
       else
       {
+        
+    std::cerr << "ENTERED HERE 2" << std::endl;
+
         m_chromaFormatConstraint = NUM_CHROMA_FORMAT;
         automaticallySelectRExtProfile(bUsingGeneralRExtTools,
                                        bUsingChromaQPAdjustment,
@@ -1259,7 +1263,7 @@ Bool TAppEncCfg::parseCfg( Int argc, TChar* argv[] )
                                        m_bitDepthConstraint,
                                        m_chromaFormatConstraint,
                                        m_chromaFormatIDC==CHROMA_400 ? m_internalBitDepth[CHANNEL_TYPE_LUMA] : std::max(m_internalBitDepth[CHANNEL_TYPE_LUMA], m_internalBitDepth[CHANNEL_TYPE_CHROMA]),
-                                       m_chromaFormatIDC);
+                                       m_chromaFormatIDC); //sad
       }
     }
     else if (m_bitDepthConstraint == 0 || tmpConstraintChromaFormat == 0)
@@ -1274,9 +1278,18 @@ Bool TAppEncCfg::parseCfg( Int argc, TChar* argv[] )
   }
   else
   {
+    
+    std::cerr << "ENTERED HERE 3" << std::endl;
     m_chromaFormatConstraint = (tmpConstraintChromaFormat == 0) ? m_chromaFormatIDC : numberToChromaFormat(tmpConstraintChromaFormat);
-    m_bitDepthConstraint = (m_profile == Profile::MAIN10?10:8);
+    m_bitDepthConstraint = (m_profile == Profile::MAIN10?10:8); //sad?
   }
+
+  
+  m_profileSad = Profile::MAINREXT;
+  m_bitDepthConstraintSad           = 8;
+  m_intraConstraintFlagSad          = false;
+  m_onePictureOnlyConstraintFlagSad = false;
+  m_chromaFormatConstraintSad = numberToChromaFormat(400);
 
 
   m_inputColourSpaceConvert = stringToInputColourSpaceConvert(inputColourSpaceConvert, true);
@@ -1524,8 +1537,10 @@ Bool TAppEncCfg::parseCfg( Int argc, TChar* argv[] )
   }
 
   m_uiMaxTotalCUDepth = m_uiMaxCUDepth + uiAddCUDepth + getMaxCUDepthOffset(m_chromaFormatIDC, m_uiQuadtreeTULog2MinSize); // if minimum TU larger than 4x4, allow for additional part indices for 4:2:2 SubTUs.
-  m_uiLog2DiffMaxMinCodingBlockSize = m_uiMaxCUDepth - 1;
-
+  m_uiLog2DiffMaxMinCodingBlockSize = m_uiMaxCUDepth - 1; //sad
+  
+  m_uiMaxTotalCUDepthSad = m_uiMaxCUDepth + uiAddCUDepth + getMaxCUDepthOffset(CHROMA_400, m_uiQuadtreeTULog2MinSize); // if minimum TU larger than 4x4, allow for additional part indices for 4:2:2 SubTUs.
+  
   // print-out parameters
   xPrintParameter();
 

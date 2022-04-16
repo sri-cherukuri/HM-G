@@ -98,6 +98,12 @@ protected:
   Bool      m_bClipOutputVideoToRec709Range;
 
   // profile/level
+  Profile::Name m_profileSad;
+  UInt m_bitDepthConstraintSad;
+  Bool m_intraConstraintFlagSad;
+  Bool m_onePictureOnlyConstraintFlagSad;
+  ChromaFormat m_chromaFormatConstraintSad;
+
   Profile::Name m_profile;
   Level::Tier   m_levelTier;
   Level::Name   m_level;
@@ -162,6 +168,7 @@ protected:
   UInt      m_uiMaxCUHeight;                                  ///< max. CU height in pixel
   UInt      m_uiMaxCUDepth;                                   ///< max. CU depth (as specified by command line)
   UInt      m_uiMaxTotalCUDepth;                              ///< max. total CU depth - includes depth of transform-block structure
+  UInt      m_uiMaxTotalCUDepthSad;                              ///< max. total CU depth - includes depth of transform-block structure
   UInt      m_uiLog2DiffMaxMinCodingBlockSize;                ///< difference between largest and smallest CU depth
 
   // transfom unit (TU) definition

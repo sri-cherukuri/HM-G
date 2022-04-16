@@ -45,6 +45,7 @@
 
 #include "TLibCommon/TComRom.h"
 #include "TVideoIOYuv.h"
+#include <pthread.h>
 
 using namespace std;
 
@@ -736,6 +737,25 @@ Bool TVideoIOYuv::read ( TComPicYuv*  pPicYuvUser, TComPicYuv* pPicYuvTrueOrg, c
   return true;
 }
 
+struct thread_copy_scan_args {
+    int comp;
+    int *pPicYuv;
+    int *dstPicYuv;
+}
+
+void *thread_copy_and_scan(void *arg) {
+    struct thread_copy_scan_args *args = (struct thread_copy_scan_args *)arg;
+    const ComponentID compID=ComponentID(args.comp);
+    const ChannelType ch=toChannelType(compID);
+    const Bool b709Compliance = bClipToRec709 && (-m_bitdepthShift[ch] < 0 && m_MSBExtendedBitDepth[ch] >= 8);     /* ITU-R BT.709 compliant clipping for converting say 10b to 8b */
+    const Pel minval = b709Compliance? ((   1 << (m_MSBExtendedBitDepth[ch] - 8))   ) : 0;
+    const Pel maxval = b709Compliance? ((0xff << (m_MSBExtendedBitDepth[ch] - 8)) -1) : (1 << m_MSBExtendedBitDepth[ch]) - 1;
+
+    copyPlane(*pPicYuv, compID, *args.dstPicYuv, compID);
+    scalePlane(dstPicYuv->getAddr(compID), dstPicYuv->getStride(compID), dstPicYuv->getWidth(compID), dstPicYuv->getHeight(compID), -m_bitdepthShift[ch], minval, maxval);
+    return 0;
+}
+
 /**
  * Write one Y'CbCr frame. No bit-depth conversion is performed, pcPicYuv is
  * assumed to be at TVideoIO::m_fileBitdepth depth.
@@ -786,17 +806,23 @@ Bool TVideoIOYuv::write( TComPicYuv* pPicYuvUser, const InputColourSpaceConversi
   {
     dstPicYuv = new TComPicYuv;
     dstPicYuv->createWithoutCUInfo( pPicYuv->getWidth(COMPONENT_Y), pPicYuv->getHeight(COMPONENT_Y), pPicYuv->getChromaFormat() );
-
+      
+    // threading to split copy and scanning - 3 threasd max if getNumberValidComponents() uses 3 channel option
+    vector<pthread_t> child_threads(dstPicYuv->getNumberValidComponents());
+    vector<thread_copy_scan_args> thread_args(dstPicYuv->getNumberValidComponents());
+      
     for(UInt comp=0; comp<dstPicYuv->getNumberValidComponents(); comp++)
     {
-      const ComponentID compID=ComponentID(comp);
-      const ChannelType ch=toChannelType(compID);
-      const Bool b709Compliance = bClipToRec709 && (-m_bitdepthShift[ch] < 0 && m_MSBExtendedBitDepth[ch] >= 8);     /* ITU-R BT.709 compliant clipping for converting say 10b to 8b */
-      const Pel minval = b709Compliance? ((   1 << (m_MSBExtendedBitDepth[ch] - 8))   ) : 0;
-      const Pel maxval = b709Compliance? ((0xff << (m_MSBExtendedBitDepth[ch] - 8)) -1) : (1 << m_MSBExtendedBitDepth[ch]) - 1;
-
-      copyPlane(*pPicYuv, compID, *dstPicYuv, compID);
-      scalePlane(dstPicYuv->getAddr(compID), dstPicYuv->getStride(compID), dstPicYuv->getWidth(compID), dstPicYuv->getHeight(compID), -m_bitdepthShift[ch], minval, maxval);
+        thread_args[comp].comp = comp;
+        thread_args[comp].pPicYuv = pPicYuv;
+        thread_args[comp].dstPicYuv = dstPicYuv;
+        pthread_create(&child_threads[comp], NULL, thread_copy_and_scan, &thread_args[i]);
+    }
+      
+    // barrier for copy and scanning
+    for(UInt comp=0; comp<dstPicYuv->getNumberValidComponents(); comp++)
+    {
+        pthread_join(&child_threads[comp], NULL);
     }
   }
   else

@@ -863,22 +863,16 @@ Void TAppEncTop::encode()
   if( m_isField )
   {
     pcPicYuvOrg->create  ( m_iSourceWidth, m_iSourceHeightOrg, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
-<<<<<<< HEAD
     pcPicYuvOrgSad->create  ( m_iSourceWidth, m_iSourceHeightOrg, CHROMA_400, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepthSad, true );
 
-=======
->>>>>>> master
     cPicYuvTrueOrg.create(m_iSourceWidth, m_iSourceHeightOrg, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true);
     cPicYuvTrueOrgSad.create(m_iSourceWidth, m_iSourceHeightOrg, CHROMA_400, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepthSad, true);
   }
   else
   {
     pcPicYuvOrg->create  ( m_iSourceWidth, m_iSourceHeight, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
-<<<<<<< HEAD
     pcPicYuvOrgSad->create  ( m_iSourceWidth, m_iSourceHeight, CHROMA_400, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepthSad, true );
 
-=======
->>>>>>> master
     cPicYuvTrueOrg.create(m_iSourceWidth, m_iSourceHeight, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
     cPicYuvTrueOrgSad.create(m_iSourceWidth, m_iSourceHeight, CHROMA_400, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepthSad, true );
   }

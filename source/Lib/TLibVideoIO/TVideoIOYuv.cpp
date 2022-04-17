@@ -279,17 +279,12 @@ static Bool readPlane(Pel* dst,
   UChar *buf=&(bufVec[0]);
 
   bool goodForSad = true;
-  if (compID!=COMPONENT_Y && (fileFormat==CHROMA_400 || destFormat==CHROMA_400))
+  if (compID!=COMPONENT_Y)
   {
-    if (fileFormat!=CHROMA_400)
-    {
       goodForSad = false;
       // const UInt height_file      = height444>>csy_file;
       // fd.seekg(height_file*stride_file, ios::cur);
-    }
   }
-  else
-  {
     const UInt mask_y_file=(1<<csy_file)-1;
     const UInt mask_y_dest=(1<<csy_dest)-1;
     for(UInt y444=0; y444<height444; y444++)
@@ -360,7 +355,7 @@ static Bool readPlane(Pel* dst,
 
         // process right hand side padding
         const Pel val=dst[width_dest-1];
-        const Pel valSad=dstSad[width_dest-1];
+        const Pel valSad= goodForSad ? dstSad[width_dest-1] : 0;
         for (UInt x = width_dest; x < full_width_dest; x++)
         {
           dst[x] = val;
@@ -376,6 +371,8 @@ static Bool readPlane(Pel* dst,
       }
     }
 
+    
+
     // process lower padding
     for (UInt y = height_dest; y < full_height_dest; y++, dst+=stride_dest, dstSad+=stride_dest)
     {
@@ -387,7 +384,9 @@ static Bool readPlane(Pel* dst,
         }
       }
     }
-  }
+
+    
+  std::cerr << "readPlane goodForSad " << goodForSad << std::endl;
   return true;
 }
 

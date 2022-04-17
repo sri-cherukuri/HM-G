@@ -67,6 +67,7 @@ private:
   TComList<TComPicYuv*>      m_cListPicYuvRec;              ///< list of reconstruction YUV files
   TComList<TComPicYuv*>      m_cListPicYuvRecSad;              ///< list of reconstruction YUV files
 
+  Int                        m_iFrameRcvdGlad;
   Int                        m_iFrameRcvd;                  ///< number of received frames
 
   UInt m_essentialBytes;
@@ -97,6 +98,7 @@ public:
   TAppEncTop();
   virtual ~TAppEncTop();
 
+  void        member_thread_while_encode( bool isSad);
   Void        encode      ();                               ///< main encoding function
   TEncTop&    getTEncTop  ()   { return  m_cTEncTop; }      ///< return encoder class pointer reference
 

@@ -906,22 +906,30 @@ Void TAppEncTop::encode()
     // call encoding function for one frame
     if ( m_isField )
     {
-      m_cTEncTop.encode( bEos, flush ? 0 : pcPicYuvOrg, flush ? 0 : &cPicYuvTrueOrg, snrCSC, m_cListPicYuvRec, outputAccessUnits, iNumEncoded, m_isTopFieldFirst );
+      if ( !(m_iFrameRcvd % 4) ) {
+        m_cTEncTop.encode( bEos, flush ? 0 : pcPicYuvOrg, flush ? 0 : &cPicYuvTrueOrg, snrCSC, m_cListPicYuvRec, outputAccessUnits, iNumEncoded, m_isTopFieldFirst );
+      }
       m_cTEncTopSad.encode( bEos, flush ? 0 : pcPicYuvOrgSad, flush ? 0 : &cPicYuvTrueOrgSad, snrCSCSad, m_cListPicYuvRecSad, outputAccessUnitsSad, iNumEncodedSad, m_isTopFieldFirst );
     }
     else
     {
-      m_cTEncTop.encode( bEos, flush ? 0 : pcPicYuvOrg, flush ? 0 : &cPicYuvTrueOrg, snrCSC, m_cListPicYuvRec, outputAccessUnits, iNumEncoded );
-      
+
+      if ( !(m_iFrameRcvd % 4) ) {
+        m_cTEncTop.encode( bEos, flush ? 0 : pcPicYuvOrg, flush ? 0 : &cPicYuvTrueOrg, snrCSC, m_cListPicYuvRec, outputAccessUnits, iNumEncoded );
+      }
       m_cTEncTopSad.encode( bEos, flush ? 0 : pcPicYuvOrgSad, flush ? 0 : &cPicYuvTrueOrgSad, snrCSCSad, m_cListPicYuvRecSad, outputAccessUnitsSad, iNumEncodedSad );
     }
 
     // write bistream to file if necessary
     if ( iNumEncoded > 0 )
     {
-      xWriteOutput(bitstreamFile, iNumEncoded, outputAccessUnits, false);
+      if ( !(m_iFrameRcvd % 4) ) {
+        xWriteOutput(bitstreamFile, iNumEncoded, outputAccessUnits, false);
+      }
       xWriteOutput(bitstreamFileSad, iNumEncodedSad, outputAccessUnitsSad, true);
-      outputAccessUnits.clear();
+      if ( !(m_iFrameRcvd % 4) ) {
+        outputAccessUnits.clear();
+      }
       outputAccessUnitsSad.clear();
     }
   }

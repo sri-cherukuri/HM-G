@@ -926,10 +926,13 @@ Void TAppEncTop::encode()
       if ( !(m_iFrameRcvd % 4) ) {
         xWriteOutput(bitstreamFile, iNumEncoded, outputAccessUnits, false);
       }
-      xWriteOutput(bitstreamFileSad, iNumEncodedSad, outputAccessUnitsSad, true);
       if ( !(m_iFrameRcvd % 4) ) {
         outputAccessUnits.clear();
       }
+    }
+    if ( iNumEncodedSad > 0 )
+    {
+      xWriteOutput(bitstreamFileSad, iNumEncodedSad, outputAccessUnitsSad, true);
       outputAccessUnitsSad.clear();
     }
   }

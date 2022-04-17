@@ -738,9 +738,9 @@ Bool TVideoIOYuv::read ( TComPicYuv*  pPicYuvUser, TComPicYuv* pPicYuvTrueOrg, c
 }
 
 struct thread_copy_scan_args {
-    int comp;
-    int *pPicYuv;
-    int *dstPicYuv;
+    UInt comp;
+    TComPicYuv *pPicYuv;
+    TComPicYuv *dstPicYuv;
 }
 
 void *thread_copy_and_scan(void *arg) {

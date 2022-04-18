@@ -384,9 +384,6 @@ static Bool readPlane(Pel* dst,
         }
       }
     }
-
-    
-  std::cerr << "readPlane goodForSad " << goodForSad << std::endl;
   return true;
 }
 

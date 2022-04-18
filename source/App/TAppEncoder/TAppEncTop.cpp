@@ -123,7 +123,7 @@ Void TAppEncTop::xInitLibCfg()
   m_cTEncTop.setSourceWidth                                       ( m_iSourceWidth );
   m_cTEncTop.setSourceHeight                                      ( m_iSourceHeight );
   m_cTEncTop.setConformanceWindow                                 ( m_confWinLeft, m_confWinRight, m_confWinTop, m_confWinBottom );
-  m_cTEncTop.setFramesToBeEncoded                                 ( m_framesToBeEncoded );
+  m_cTEncTop.setFramesToBeEncoded                                 ( m_framesToBeEncoded / 4);
 
   //====== Coding Structure ========
   m_cTEncTop.setIntraPeriod                                       ( m_iIntraPeriod );
@@ -922,17 +922,15 @@ Void TAppEncTop::encode()
     // write bistream to file if necessary
     if ( iNumEncoded > 0 )
     {
-      if ( !(m_iFrameRcvd % 4) ) {
-        xWriteOutput(bitstreamFile, iNumEncoded, outputAccessUnits, false);
-      }
-      if ( !(m_iFrameRcvd % 4) ) {
-        outputAccessUnits.clear();
-      }
+      xWriteOutput(bitstreamFile, iNumEncoded, outputAccessUnits, false);
+      outputAccessUnits.clear();
+      iNumEncoded = 0;
     }
     if ( iNumEncodedSad > 0 )
     {
       xWriteOutput(bitstreamFileSad, iNumEncodedSad, outputAccessUnitsSad, true);
       outputAccessUnitsSad.clear();
+      iNumEncodedSad = 0;
     }
   }
 

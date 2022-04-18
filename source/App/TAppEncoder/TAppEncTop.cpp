@@ -63,6 +63,7 @@ using namespace std;
 TAppEncTop::TAppEncTop()
 {
   m_iFrameRcvd = 0;
+  m_iFrameRcvdGlad = 0;
   m_totalBytes = 0;
   m_essentialBytes = 0;
 }
@@ -127,7 +128,7 @@ Void TAppEncTop::xInitLibCfg()
   m_cTEncTop.setSourceWidth                                       ( m_iSourceWidth );
   m_cTEncTop.setSourceHeight                                      ( m_iSourceHeight );
   m_cTEncTop.setConformanceWindow                                 ( m_confWinLeft, m_confWinRight, m_confWinTop, m_confWinBottom );
-  m_cTEncTop.setFramesToBeEncoded                                 ( m_framesToBeEncoded );
+  m_cTEncTop.setFramesToBeEncoded                                 ( m_framesToBeEncoded/GALPHA );
 
   //====== Coding Structure ========
   m_cTEncTop.setIntraPeriod                                       ( m_iIntraPeriod );
@@ -878,11 +879,11 @@ void TAppEncTop::member_thread_encode(bool isSad)
     }
     // increase number of received frames
     if (isSad) m_iFrameRcvd++;
-    else m_iFrameRcvdGlad += GALPHA;
-// TODO: do we need a Glad version of m_framesToBeEncoded?
+    else m_iFrameRcvdGlad++;
+
     bEos = isSad ? 
             (m_isField && (m_iFrameRcvd == (m_framesToBeEncoded >> 1) )) || ( !m_isField && (m_iFrameRcvd == m_framesToBeEncoded) ) :
-            (m_isField && (m_iFrameRcvdGlad > (m_framesToBeEncoded >> 1) )) || ( !m_isField && (m_iFrameRcvdGlad > m_framesToBeEncoded) ) ;
+            (m_isField && (m_iFrameRcvdGlad == (m_framesToBeEncoded/GALPHA >> 1) )) || ( !m_isField && (m_iFrameRcvdGlad == m_framesToBeEncoded/GALPHA) ) ;
 
     Bool flush = 0;
     // if end of file (which is only detected on a read failure) flush the encoder of any queued pictures
@@ -896,7 +897,7 @@ void TAppEncTop::member_thread_encode(bool isSad)
       }
       else {
         m_iFrameRcvdGlad--;
-        m_cTEncTop.setFramesToBeEncoded(m_iFrameRcvd); // TODO: should I be using Glad here?
+        m_cTEncTop.setFramesToBeEncoded(m_iFrameRcvdGlad);
       }
     }
 

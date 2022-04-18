@@ -13,3 +13,5 @@ build/linux/utils/convert_NtoMbit_YCbCr/objects/
 lib/
 
 *.swp
+*.yuv
+/*.bin

@@ -98,7 +98,7 @@ public:
   TAppEncTop();
   virtual ~TAppEncTop();
 
-  void        member_thread_while_encode( bool isSad);
+  void        member_thread_encode( bool isSad);
   Void        encode      ();                               ///< main encoding function
   TEncTop&    getTEncTop  ()   { return  m_cTEncTop; }      ///< return encoder class pointer reference
 

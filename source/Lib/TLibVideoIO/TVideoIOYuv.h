@@ -82,7 +82,7 @@ public:
   Bool  write ( TComPicYuv* pPicYuvTop, TComPicYuv* pPicYuvBottom, const InputColourSpaceConversion ipCSC, Int confLeft=0, Int confRight=0, Int confTop=0, Int confBottom=0, ChromaFormat fileFormat=NUM_CHROMA_FORMAT, const Bool isTff=false, const Bool bClipToRec709=false);
   static Void ColourSpaceConvert(const TComPicYuv &src, TComPicYuv &dest, const InputColourSpaceConversion conversion, Bool bIsForwards);
 
-  Bool  isEof ();                                           ///< check for end-of-file
+  Bool  isEof (bool isSad=true);                                           ///< check for end-of-file
   Bool  isFail();                                           ///< check for failure
 
 

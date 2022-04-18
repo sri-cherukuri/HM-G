@@ -49,6 +49,8 @@
 
 #include <pthread.h>
 
+#define GALPHA 4
+
 using namespace std;
 
 //! \ingroup TAppEncoder
@@ -808,22 +810,20 @@ Void TAppEncTop::xInitLib(Bool isFieldCoding)
 
 // Infrastructure for pthread-ing encoding loop
 
-struct thread_while_encode_args {
+struct thread_tapp_encode_args {
    bool isSad;
    TAppEncTop * taet;
 };
 
-void * thread_caller(void *arg)
+void * thread_tapp_encode_caller(void *arg)
 {
-  struct thread_while_encode_args * args = (struct thread_while_encode_args *)arg;
-  args->taet->member_thread_while_encode(args->isSad);
+  struct thread_tapp_encode_args * args = (struct thread_tapp_encode_args *)arg;
+  args->taet->member_thread_encode(args->isSad);
   return 0;
 }
 
-void TAppEncTop::member_thread_while_encode(bool isSad)
+void TAppEncTop::member_thread_encode(bool isSad)
 {
-#define GALPHA 4
-
   std::string bitstreamFileName = isSad ? std::string("sad" + m_bitstreamFileName) : m_bitstreamFileName;
   fstream bitstreamFile(bitstreamFileName.c_str(), fstream::binary | fstream::out);
 
@@ -865,7 +865,7 @@ void TAppEncTop::member_thread_while_encode(bool isSad)
   while ( !bEos )
   {
     // get buffers
-    xGetBuffer(isSad ? pcPicYuvRec : pcPicYuvRec, isSad);
+    xGetBuffer(pcPicYuvRec, isSad);
 
     // read input YUV file
     if (isSad) {
@@ -882,11 +882,11 @@ void TAppEncTop::member_thread_while_encode(bool isSad)
 // TODO: do we need a Glad version of m_framesToBeEncoded?
     bEos = isSad ? 
             (m_isField && (m_iFrameRcvd == (m_framesToBeEncoded >> 1) )) || ( !m_isField && (m_iFrameRcvd == m_framesToBeEncoded) ) :
-            (m_isField && (m_iFrameRcvdGlad+GALPHA > (m_framesToBeEncoded >> 1) )) || ( !m_isField && (m_iFrameRcvdGlad+GALPHA > m_framesToBeEncoded) ) ;
+            (m_isField && (m_iFrameRcvdGlad > (m_framesToBeEncoded >> 1) )) || ( !m_isField && (m_iFrameRcvdGlad > m_framesToBeEncoded) ) ;
 
     Bool flush = 0;
     // if end of file (which is only detected on a read failure) flush the encoder of any queued pictures
-    if (m_cTVideoIOYuvInputFile.isEof())
+    if (m_cTVideoIOYuvInputFile.isEof(isSad))
     {
       flush = true;
       bEos = true;
@@ -896,7 +896,7 @@ void TAppEncTop::member_thread_while_encode(bool isSad)
       }
       else {
         m_iFrameRcvdGlad--;
-        m_cTEncTop.setFramesToBeEncoded(m_iFrameRcvdGlad); // TODO: should I be using Glad here?
+        m_cTEncTop.setFramesToBeEncoded(m_iFrameRcvd); // TODO: should I be using Glad here?
       }
     }
 
@@ -928,6 +928,7 @@ void TAppEncTop::member_thread_while_encode(bool isSad)
     }
   }
 
+  /* REMOVED PRINTSUMMARY */
   if (isSad) m_cTEncTopSad.printSummary(m_isField);
   else m_cTEncTop.printSummary(m_isField);
 
@@ -937,8 +938,8 @@ void TAppEncTop::member_thread_while_encode(bool isSad)
   pcPicYuvOrg = NULL;
 
   // delete used buffers in encoder class
-  if (isSad)  m_cTEncTop.deletePicBuffer();
-  else m_cTEncTopSad.deletePicBuffer();
+  if (isSad)  m_cTEncTopSad.deletePicBuffer();
+  else m_cTEncTop.deletePicBuffer();
   cPicYuvTrueOrg.destroy();
 
   // delete buffers & classes
@@ -963,28 +964,8 @@ void TAppEncTop::member_thread_while_encode(bool isSad)
  */
 Void TAppEncTop::encode()
 {
-  fstream bitstreamFile(m_bitstreamFileName.c_str(), fstream::binary | fstream::out);
-  fstream bitstreamFileSad(std::string("sad" + m_bitstreamFileName).c_str(), fstream::binary | fstream::out);
 
-  if (!bitstreamFile)
-  {
-    fprintf(stderr, "\nfailed to open bitstream file `%s' for writing\n", m_bitstreamFileName.c_str());
-    exit(EXIT_FAILURE);
-  }
-  
-  if (!bitstreamFileSad)
-  {
-    fprintf(stderr, "\nfailed to open bitstream file `%s' for writing\n", std::string(m_bitstreamFileName + "Sad").c_str());
-    exit(EXIT_FAILURE);
-  }
-
-  TComPicYuv*       pcPicYuvOrg = new TComPicYuv;
-  TComPicYuv*       pcPicYuvOrgSad = new TComPicYuv;
-  TComPicYuv*       pcPicYuvRec = NULL;
-  TComPicYuv*       pcPicYuvRecSad = NULL;
-
-  /* TODO: INITIALIZE INTERNALS/MEMBERS AND PRINTCHROMA NEED TO STAY HERE WHEN DOING PTHREADS */
-
+  /* INITIALIZE INTERNALS/MEMBERS AND PRINTCHROMA NEED TO STAY HERE WHEN DOING PTHREADS */
   // initialize internal class & member variables
   xInitLibCfg();
   xCreateLib();
@@ -992,122 +973,28 @@ Void TAppEncTop::encode()
 
   printChromaFormat();
 
-  // main encoder loop
-  Int   iNumEncoded = 0;
-  Int   iNumEncodedSad = 0;
-  Bool  bEos = false;
+  pthread_t gladChild;
+  pthread_t sadChild;
 
-  const InputColourSpaceConversion ipCSC  =  m_inputColourSpaceConvert;
-  const InputColourSpaceConversion snrCSC = (!m_snrInternalColourSpace) ? m_inputColourSpaceConvert : IPCOLOURSPACE_UNCHANGED;
-  const InputColourSpaceConversion snrCSCSad = (!m_snrInternalColourSpace) ? m_inputColourSpaceConvert : IPCOLOURSPACE_UNCHANGED;
+  thread_tapp_encode_args gladArgs;
+  thread_tapp_encode_args sadArgs;
 
-  list<AccessUnit> outputAccessUnits; ///< list of access units to write out.  is populated by the encoding process
-  list<AccessUnit> outputAccessUnitsSad; ///< sad list of access units to write out.  is populated by the encoding process
+  gladArgs.isSad = false;
+  gladArgs.taet = this;
+  sadArgs.isSad = true;
+  sadArgs.taet = this;
 
-  TComPicYuv cPicYuvTrueOrg;
-  TComPicYuv cPicYuvTrueOrgSad;
-  // allocate original YUV buffer
-  if( m_isField )
-  {
-    pcPicYuvOrg->create  ( m_iSourceWidth, m_iSourceHeightOrg, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
-    pcPicYuvOrgSad->create  ( m_iSourceWidth, m_iSourceHeightOrg, CHROMA_400, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepthSad, true );
+  pthread_create(&gladChild, NULL, thread_tapp_encode_caller, &gladArgs);
+  pthread_create(&sadChild, NULL, thread_tapp_encode_caller, &sadArgs);
 
-    cPicYuvTrueOrg.create(m_iSourceWidth, m_iSourceHeightOrg, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true);
-    cPicYuvTrueOrgSad.create(m_iSourceWidth, m_iSourceHeightOrg, CHROMA_400, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepthSad, true);
-  }
-  else
-  {
-    pcPicYuvOrg->create  ( m_iSourceWidth, m_iSourceHeight, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
-    pcPicYuvOrgSad->create  ( m_iSourceWidth, m_iSourceHeight, CHROMA_400, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepthSad, true );
+  pthread_join(gladChild, NULL);
+  pthread_join(sadChild, NULL);
 
-    cPicYuvTrueOrg.create(m_iSourceWidth, m_iSourceHeight, m_chromaFormatIDC, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepth, true );
-    cPicYuvTrueOrgSad.create(m_iSourceWidth, m_iSourceHeight, CHROMA_400, m_uiMaxCUWidth, m_uiMaxCUHeight, m_uiMaxTotalCUDepthSad, true );
-  }
-
-  while ( !bEos )
-  {
-    // get buffers
-    xGetBuffer(pcPicYuvRec, false);
-    xGetBuffer(pcPicYuvRecSad, true); //Make pcPicYuvRecSad?
-
-    // read input YUV file
-    m_cTVideoIOYuvInputFile.read( pcPicYuvOrg, &cPicYuvTrueOrg, ipCSC, m_aiPad, m_InputChromaFormatIDC, m_bClipInputVideoToRec709Range, false);
-    m_cTVideoIOYuvInputFile.read( pcPicYuvOrgSad, &cPicYuvTrueOrgSad, ipCSC, m_aiPad, m_InputChromaFormatIDC, m_bClipInputVideoToRec709Range, true);
-
-    // increase number of received frames
-    m_iFrameRcvd++;
-
-    bEos = (m_isField && (m_iFrameRcvd == (m_framesToBeEncoded >> 1) )) || ( !m_isField && (m_iFrameRcvd == m_framesToBeEncoded) );
-
-    Bool flush = 0;
-    // if end of file (which is only detected on a read failure) flush the encoder of any queued pictures
-    if (m_cTVideoIOYuvInputFile.isEof())
-    {
-      flush = true;
-      bEos = true;
-      m_iFrameRcvd--;
-      m_cTEncTop.setFramesToBeEncoded(m_iFrameRcvd);
-      m_cTEncTopSad.setFramesToBeEncoded(m_iFrameRcvd);
-    }
-
-    // call encoding function for one frame
-    if ( m_isField )
-    {
-      if ( !(m_iFrameRcvd % 4) ) {
-        m_cTEncTop.encode( bEos, flush ? 0 : pcPicYuvOrg, flush ? 0 : &cPicYuvTrueOrg, snrCSC, m_cListPicYuvRec, outputAccessUnits, iNumEncoded, m_isTopFieldFirst );
-      }
-      m_cTEncTopSad.encode( bEos, flush ? 0 : pcPicYuvOrgSad, flush ? 0 : &cPicYuvTrueOrgSad, snrCSCSad, m_cListPicYuvRecSad, outputAccessUnitsSad, iNumEncodedSad, m_isTopFieldFirst );
-    }
-    else
-    {
-
-      if ( !(m_iFrameRcvd % 4) ) {
-        m_cTEncTop.encode( bEos, flush ? 0 : pcPicYuvOrg, flush ? 0 : &cPicYuvTrueOrg, snrCSC, m_cListPicYuvRec, outputAccessUnits, iNumEncoded );
-      }
-      m_cTEncTopSad.encode( bEos, flush ? 0 : pcPicYuvOrgSad, flush ? 0 : &cPicYuvTrueOrgSad, snrCSCSad, m_cListPicYuvRecSad, outputAccessUnitsSad, iNumEncodedSad );
-    }
-
-    // write bistream to file if necessary
-    if ( iNumEncoded > 0 )
-    {
-      if ( !(m_iFrameRcvd % 4) ) {
-        xWriteOutput(bitstreamFile, iNumEncoded, outputAccessUnits, false);
-      }
-      if ( !(m_iFrameRcvd % 4) ) {
-        outputAccessUnits.clear();
-      }
-    }
-    if ( iNumEncodedSad > 0 )
-    {
-      xWriteOutput(bitstreamFileSad, iNumEncodedSad, outputAccessUnitsSad, true);
-      outputAccessUnitsSad.clear();
-    }
-  }
-
+  /* PRINTSUMMARY NEEDS TO STAY HERE WHEN DOING PTHREADS */
   m_cTEncTop.printSummary(m_isField);
   m_cTEncTopSad.printSummary(m_isField);
 
-  // delete original YUV buffer
-  pcPicYuvOrg->destroy();
-  delete pcPicYuvOrg;
-  pcPicYuvOrg = NULL;
-
-  pcPicYuvOrgSad->destroy();
-  delete pcPicYuvOrgSad;
-  pcPicYuvOrgSad = NULL;
-
-  // delete used buffers in encoder class
-  m_cTEncTop.deletePicBuffer();
-  m_cTEncTopSad.deletePicBuffer();
-  cPicYuvTrueOrg.destroy();
-  cPicYuvTrueOrgSad.destroy();
-
-  // delete buffers & classes
-  xDeleteBuffer(true);
-  xDeleteBuffer(false);
-
-  /* TODO: XDESTROYLIB AND PRINTRATESUMMARY NEED TO STAY HERE WHEN DOING PTHREADS */
-
+  /* XDESTROYLIB AND PRINTRATESUMMARY NEED TO STAY HERE WHEN DOING PTHREADS */
   xDestroyLib();
 
   printRateSummary();

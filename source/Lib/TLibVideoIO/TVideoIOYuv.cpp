@@ -170,9 +170,9 @@ Void TVideoIOYuv::close()
   m_cHandle.close();
 }
 
-Bool TVideoIOYuv::isEof()
+Bool TVideoIOYuv::isEof(bool isSad)
 {
-  return m_cHandle.eof();
+  return isSad ? m_cHandleSad.eof() : m_cHandle.eof();
 }
 
 Bool TVideoIOYuv::isFail()

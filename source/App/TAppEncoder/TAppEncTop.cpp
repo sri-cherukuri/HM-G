@@ -128,7 +128,7 @@ Void TAppEncTop::xInitLibCfg()
   m_cTEncTop.setSourceWidth                                       ( m_iSourceWidth );
   m_cTEncTop.setSourceHeight                                      ( m_iSourceHeight );
   m_cTEncTop.setConformanceWindow                                 ( m_confWinLeft, m_confWinRight, m_confWinTop, m_confWinBottom );
-  m_cTEncTop.setFramesToBeEncoded                                 ( m_framesToBeEncoded );
+  m_cTEncTop.setFramesToBeEncoded                                 ( m_framesToBeEncoded/GTAU );
 
   //====== Coding Structure ========
   m_cTEncTop.setIntraPeriod                                       ( m_iIntraPeriod );
@@ -461,7 +461,7 @@ Void TAppEncTop::xInitLibCfg()
   m_cTEncTopSad.setSourceWidth                                       ( m_iSourceWidth );
   m_cTEncTopSad.setSourceHeight                                      ( m_iSourceHeight );
   m_cTEncTopSad.setConformanceWindow                                 ( m_confWinLeft, m_confWinRight, m_confWinTop, m_confWinBottom );
-  m_cTEncTopSad.setFramesToBeEncoded                                 ( m_framesToBeEncoded );
+  m_cTEncTopSad.setFramesToBeEncoded                                 ( m_framesToBeEncoded/GSAD );
 
   //====== Coding Structure ========
   m_cTEncTopSad.setIntraPeriod                                       ( m_iIntraPeriod );
@@ -903,8 +903,8 @@ Void TAppEncTop::encode()
       flush = true;
       bEos = true;
       m_iFrameRcvd--;
-      m_cTEncTop.setFramesToBeEncoded(m_iFrameRcvd);
-      m_cTEncTopSad.setFramesToBeEncoded(m_iFrameRcvd);
+      m_cTEncTop.setFramesToBeEncoded(m_iFrameRcvd/GTAU);
+      m_cTEncTopSad.setFramesToBeEncoded(m_iFrameRcvd/GSAD);
     }
 
     // call encoding function for one frame

@@ -131,7 +131,7 @@ Void TAppEncTop::xInitLibCfg()
   m_cTEncTop.setSourceWidth                                       ( m_iSourceWidth );
   m_cTEncTop.setSourceHeight                                      ( m_iSourceHeight );
   m_cTEncTop.setConformanceWindow                                 ( m_confWinLeft, m_confWinRight, m_confWinTop, m_confWinBottom );
-  m_cTEncTop.setFramesToBeEncoded                                 ( m_framesToBeEncoded/GALPHA );
+  m_cTEncTop.setFramesToBeEncoded                                 ( m_framesToBeEncoded/GTAU );
 
   //====== Coding Structure ========
   m_cTEncTop.setIntraPeriod                                       ( m_iIntraPeriod );
@@ -878,7 +878,7 @@ void TAppEncTop::member_thread_encode(bool isSad)
       }
     }
     else {
-      for (int i = 0; i < GALPHA; ++i) {
+      for (int i = 0; i < GTAU; ++i) {
         m_cTVideoIOYuvInputFile.read( pcPicYuvOrg, &cPicYuvTrueOrg, ipCSC, m_aiPad, m_InputChromaFormatIDC, m_bClipInputVideoToRec709Range, isSad);
       }
     }
@@ -888,7 +888,7 @@ void TAppEncTop::member_thread_encode(bool isSad)
 
     bEos = isSad ? 
             (m_isField && (m_iFrameRcvd == (m_framesToBeEncoded/GSAD >> 1) )) || ( !m_isField && (m_iFrameRcvd == m_framesToBeEncoded/GSAD) ) :
-            (m_isField && (m_iFrameRcvdGlad == (m_framesToBeEncoded/GALPHA >> 1) )) || ( !m_isField && (m_iFrameRcvdGlad == m_framesToBeEncoded/GALPHA) ) ;
+            (m_isField && (m_iFrameRcvdGlad == (m_framesToBeEncoded/GTAU >> 1) )) || ( !m_isField && (m_iFrameRcvdGlad == m_framesToBeEncoded/GTAU) ) ;
 
     Bool flush = 0;
     // if end of file (which is only detected on a read failure) flush the encoder of any queued pictures

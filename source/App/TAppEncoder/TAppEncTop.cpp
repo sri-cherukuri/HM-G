@@ -49,7 +49,10 @@
 
 #include <pthread.h>
 
+#define GTAU 4
 #define GALPHA 4
+
+#define GSAD (GTAU/GALPHA)
 
 using namespace std;
 
@@ -461,7 +464,7 @@ Void TAppEncTop::xInitLibCfg()
   m_cTEncTopSad.setSourceWidth                                       ( m_iSourceWidth );
   m_cTEncTopSad.setSourceHeight                                      ( m_iSourceHeight );
   m_cTEncTopSad.setConformanceWindow                                 ( m_confWinLeft, m_confWinRight, m_confWinTop, m_confWinBottom );
-  m_cTEncTopSad.setFramesToBeEncoded                                 ( m_framesToBeEncoded );
+  m_cTEncTopSad.setFramesToBeEncoded                                 ( m_framesToBeEncoded/GSAD );
 
   //====== Coding Structure ========
   m_cTEncTopSad.setIntraPeriod                                       ( m_iIntraPeriod );
@@ -870,7 +873,9 @@ void TAppEncTop::member_thread_encode(bool isSad)
 
     // read input YUV file
     if (isSad) {
+      for (int i = 0; i < GSAD; ++i) {
         m_cTVideoIOYuvInputFile.read( pcPicYuvOrg, &cPicYuvTrueOrg, ipCSC, m_aiPad, m_InputChromaFormatIDC, m_bClipInputVideoToRec709Range, isSad);
+      }
     }
     else {
       for (int i = 0; i < GALPHA; ++i) {
@@ -882,7 +887,7 @@ void TAppEncTop::member_thread_encode(bool isSad)
     else m_iFrameRcvdGlad++;
 
     bEos = isSad ? 
-            (m_isField && (m_iFrameRcvd == (m_framesToBeEncoded >> 1) )) || ( !m_isField && (m_iFrameRcvd == m_framesToBeEncoded) ) :
+            (m_isField && (m_iFrameRcvd == (m_framesToBeEncoded/GSAD >> 1) )) || ( !m_isField && (m_iFrameRcvd == m_framesToBeEncoded/GSAD) ) :
             (m_isField && (m_iFrameRcvdGlad == (m_framesToBeEncoded/GALPHA >> 1) )) || ( !m_isField && (m_iFrameRcvdGlad == m_framesToBeEncoded/GALPHA) ) ;
 
     Bool flush = 0;

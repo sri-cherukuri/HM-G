@@ -47,6 +47,11 @@
 #include "TLibCommon/TComRom.h"
 #include "TLibEncoder/AnnexBwrite.h"
 
+#define GTAU 4
+#define GALPHA  4
+
+#define GSAD (GTAU/GALPHA)
+
 using namespace std;
 
 //! \ingroup TAppEncoder
@@ -123,7 +128,7 @@ Void TAppEncTop::xInitLibCfg()
   m_cTEncTop.setSourceWidth                                       ( m_iSourceWidth );
   m_cTEncTop.setSourceHeight                                      ( m_iSourceHeight );
   m_cTEncTop.setConformanceWindow                                 ( m_confWinLeft, m_confWinRight, m_confWinTop, m_confWinBottom );
-  m_cTEncTop.setFramesToBeEncoded                                 ( m_framesToBeEncoded / 4);
+  m_cTEncTop.setFramesToBeEncoded                                 ( m_framesToBeEncoded );
 
   //====== Coding Structure ========
   m_cTEncTop.setIntraPeriod                                       ( m_iIntraPeriod );
@@ -905,18 +910,21 @@ Void TAppEncTop::encode()
     // call encoding function for one frame
     if ( m_isField )
     {
-      if ( !(m_iFrameRcvd % 4) ) {
+      if ( !(m_iFrameRcvd % GTAU) ) {
         m_cTEncTop.encode( bEos, flush ? 0 : pcPicYuvOrg, flush ? 0 : &cPicYuvTrueOrg, snrCSC, m_cListPicYuvRec, outputAccessUnits, iNumEncoded, m_isTopFieldFirst );
       }
-      m_cTEncTopSad.encode( bEos, flush ? 0 : pcPicYuvOrgSad, flush ? 0 : &cPicYuvTrueOrgSad, snrCSCSad, m_cListPicYuvRecSad, outputAccessUnitsSad, iNumEncodedSad, m_isTopFieldFirst );
+      if ( !(m_iFrameRcvd % GSAD) ) {
+        m_cTEncTopSad.encode( bEos, flush ? 0 : pcPicYuvOrgSad, flush ? 0 : &cPicYuvTrueOrgSad, snrCSCSad, m_cListPicYuvRecSad, outputAccessUnitsSad, iNumEncodedSad, m_isTopFieldFirst );
+      }
     }
     else
     {
-
-      if ( !(m_iFrameRcvd % 4) ) {
+      if ( !(m_iFrameRcvd % GTAU) ) {
         m_cTEncTop.encode( bEos, flush ? 0 : pcPicYuvOrg, flush ? 0 : &cPicYuvTrueOrg, snrCSC, m_cListPicYuvRec, outputAccessUnits, iNumEncoded );
       }
-      m_cTEncTopSad.encode( bEos, flush ? 0 : pcPicYuvOrgSad, flush ? 0 : &cPicYuvTrueOrgSad, snrCSCSad, m_cListPicYuvRecSad, outputAccessUnitsSad, iNumEncodedSad );
+      if ( !(m_iFrameRcvd % GSAD) ) {
+        m_cTEncTopSad.encode( bEos, flush ? 0 : pcPicYuvOrgSad, flush ? 0 : &cPicYuvTrueOrgSad, snrCSCSad, m_cListPicYuvRecSad, outputAccessUnitsSad, iNumEncodedSad );
+      }
     }
 
     // write bistream to file if necessary
